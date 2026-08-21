@@ -7,7 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx src/lib/seed.ts"
+    "seed": "tsx src/lib/seed.ts",
+    "test-repo": "tsx src/lib/test-repo.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
