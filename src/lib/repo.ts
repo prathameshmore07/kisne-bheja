@@ -62,6 +62,22 @@ export function createPayment(input: {
   return getPaymentById(id)!;
 }
 
+export function createPaymentFromWebhook(input: {
+  razorpay_payment_id: string;
+  razorpay_payment_link_id?: string;
+  amount: number;
+  payer_vpa_hash?: string;
+}): Payment {
+  const payment = createPayment(input);
+  addAudit({
+    payment_id: payment.id,
+    action: "webhook_received",
+    actor: "system",
+    detail: `Razorpay payment ${input.razorpay_payment_id} received — ₹${(input.amount / 100).toFixed(2)}`,
+  });
+  return payment;
+}
+
 export function getPaymentById(id: string): Payment | undefined {
   return db.prepare(`SELECT * FROM payments WHERE id = ?`).get(id) as Payment | undefined;
 }

@@ -32,14 +32,6 @@ export function runMatchingEngine(paymentId: string): MatchingResult {
     throw new Error(`Payment with id ${paymentId} not found`);
   }
 
-  // Add initial audit entry
-  addAudit({
-    payment_id: payment.id,
-    action: "webhook_received",
-    actor: "system",
-    detail: `Processing payment ${payment.id} for ₹${(payment.amount / 100).toFixed(2)}`,
-  });
-
   // Fetch pending candidate orders that could plausibly match
   const allPending = getCandidateOrders(payment.amount);
   const exactCandidates = allPending.filter((o) => o.amount === payment.amount);

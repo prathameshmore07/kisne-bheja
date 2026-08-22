@@ -194,13 +194,6 @@ export function addEvidenceAndRecompute(input: {
     confidence_after: newConfidence,
   });
 
-  addAudit({
-    payment_id: input.payment_id,
-    action: "evidence_added",
-    actor: "system",
-    detail: `${input.signal_type} (${input.signal_weight >= 0 ? "+" : ""}${input.signal_weight}): ${input.detail ?? ""}`,
-  });
-
   const best = getBestCandidate(input.payment_id);
   if (best) {
     const action = determineAction(best.confidence);
