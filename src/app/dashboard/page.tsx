@@ -1,0 +1,88 @@
+import { getAllPayments, getOrderById } from "@/lib/repo";
+import { getDashboardMetrics } from "@/lib/metrics";
+import { formatRupees, statusColor, statusLabel } from "@/lib/format";
+import Link from "next/link";
+
+export const dynamic = "force-dynamic"; // always read fresh from SQLite, no caching
+
+function StatCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="flex-1 min-w-[160px]">
+      <div className="text-xs uppercase tracking-wide text-muted font-body">{label}</div>
+      <div className="font-display text-3xl mt-1">{value}</div>
+      {sub && <div className="text-xs text-muted font-body mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const payments = getAllPayments();
+  const metrics = getDashboardMetrics();
+
+  return (
+    <main className="max-w-4xl mx-auto px-6 py-10">
+      <header className="mb-8">
+        <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">Kisne Bheja</div>
+        <h1 className="font-display text-2xl font-bold">Who sent this payment?</h1>
+      </header>
+
+      <section className="flex flex-wrap gap-8 border-y border-line py-6 mb-8">
+        <StatCell
+          label="Unresolved"
+          value={formatRupees(metrics.unresolvedValue)}
+          sub={`${metrics.unresolvedCount} payment${metrics.unresolvedCount === 1 ? "" : "s"}`}
+        />
+        <StatCell
+          label="Resolution rate"
+          value={`${(metrics.resolutionRate * 100).toFixed(0)}%`}
+          sub={`${metrics.resolvedCount}/${metrics.totalCount} resolved`}
+        />
+        <StatCell
+          label="Median time to resolve"
+          value={metrics.medianResolutionMinutes !== null ? `${metrics.medianResolutionMinutes.toFixed(1)} min` : "—"}
+        />
+      </section>
+
+      <section>
+        <div className="text-xs uppercase tracking-wide text-muted font-mono mb-3">Payments</div>
+        <div className="divide-y divide-line border border-line rounded-md overflow-hidden bg-white">
+          {payments.length === 0 && (
+            <div className="p-6 text-sm text-muted font-body">No payments yet — trigger a test payment to see it here.</div>
+          )}
+          {payments.map((p) => {
+            const order = p.resolved_order_id ? getOrderById(p.resolved_order_id) : undefined;
+            const confidencePct = Math.round(p.confidence * 100);
+            return (
+              <Link
+                key={p.id}
+                href={`/dashboard/${p.id}`}
+                className="flex items-center gap-4 px-5 py-4 hover:bg-paper transition-colors"
+              >
+                <div className="font-mono text-sm w-28 shrink-0 font-medium">{formatRupees(p.amount)}</div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="h-1.5 rounded-full bg-line overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${confidencePct}%`, backgroundColor: statusColor(p.status) }}
+                    />
+                  </div>
+                  <div className="text-xs text-muted font-mono mt-1">
+                    {confidencePct}% confidence{order ? ` · ${order.product_name}` : ""}
+                  </div>
+                </div>
+
+                <div
+                  className="text-xs font-body px-2.5 py-1 rounded shrink-0 font-medium"
+                  style={{ color: statusColor(p.status), backgroundColor: `${statusColor(p.status)}1A` }}
+                >
+                  {statusLabel(p.status)}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+    </main>
+  );
+}
