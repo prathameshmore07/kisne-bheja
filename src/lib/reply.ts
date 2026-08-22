@@ -27,6 +27,23 @@ export async function processCustomerReply(
 
   // 2. Prepare candidates for Gemini
   const allCandidates = getAllCandidateScores(paymentId);
+  if (allCandidates.length === 0) {
+    addAudit({
+      payment_id: paymentId,
+      action: "manual_review",
+      actor: "system",
+      detail: "Customer replied but no candidate orders exist for this payment — sent to manual review",
+    });
+    return {
+      interpretation: {
+        matched_order_hint: null,
+        confidence_signal: 0,
+        reasoning: "No candidates to interpret against",
+      },
+      outcome: "manual_review",
+    };
+  }
+
   const candidatesForGemini = allCandidates.map((c) => ({
     order_id: c.candidate_order_id,
     product_name: c.order?.product_name ?? "Unknown order",

@@ -18,7 +18,8 @@
     "test-clarification": "tsx src/lib/test-clarification.ts",
     "test-reply-interpret": "tsx src/lib/test-reply-interpret.ts",
     "test-resolution": "tsx src/lib/test-resolution.ts",
-    "test-merchant-actions": "tsx src/lib/test-merchant-actions.ts"
+    "test-merchant-actions": "tsx src/lib/test-merchant-actions.ts",
+    "test-failures": "tsx src/lib/test-failures.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

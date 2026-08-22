@@ -19,7 +19,8 @@ export type AuditAction =
   | "approved"
   | "rejected"
   | "unlinked"
-  | "manual_review";
+  | "manual_review"
+  | "payment_failed";
 
 export interface Order {
   id: string;

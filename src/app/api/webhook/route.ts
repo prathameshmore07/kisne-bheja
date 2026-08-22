@@ -32,9 +32,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const payload = JSON.parse(rawBody);
-    const event = payload.event;
+    let payload: any;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
+    }
 
+    const event = payload?.event;
+    if (!event) {
+      return NextResponse.json({ error: "Missing webhook event" }, { status: 400 });
+    }
+
+    // 1. Handle payment captured / paid
     if (event === "payment.captured" || event === "payment_link.paid") {
       const paymentEntity =
         payload.payload?.payment?.entity ?? payload.payload?.payment_link?.entity;
@@ -58,7 +68,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid payment amount in payload" }, { status: 400 });
       }
 
-      // Idempotency check: don't duplicate payments on Razorpay retry
+      // Idempotency check: acknowledge retry without duplicate rows
       const existing = getPaymentByRazorpayId(razorpayPaymentId);
       if (existing) {
         return NextResponse.json({ status: "already_processed", payment_id: existing.id });
@@ -88,9 +98,32 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "processed", payment_id: payment.id });
     }
 
+    // 2. Handle failed payments (logged for auditing, no phantom payment row created)
+    if (event === "payment.failed") {
+      const paymentEntity = payload.payload?.payment?.entity;
+      const razorpayPaymentId = paymentEntity?.id ?? "unknown_payment";
+      const amount = paymentEntity?.amount ?? 0;
+      const errorDesc =
+        paymentEntity?.error_description ??
+        paymentEntity?.error_reason ??
+        payload.error?.description ??
+        "Payment declined / failed";
+
+      addAudit({
+        payment_id: razorpayPaymentId,
+        action: "payment_failed",
+        actor: "system",
+        detail: `Razorpay payment ${razorpayPaymentId} failed (₹${(amount / 100).toFixed(
+          2
+        )}): ${errorDesc}`,
+      });
+
+      return NextResponse.json({ status: "recorded_failure", payment_id: razorpayPaymentId });
+    }
+
     return NextResponse.json({ status: "ignored", event });
   } catch (error: any) {
-    console.error("Webhook processing error:", error);
+    console.error("Webhook processing exception:", error);
     return NextResponse.json({ error: error?.message ?? "Webhook error" }, { status: 500 });
   }
 }
