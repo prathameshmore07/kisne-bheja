@@ -7,6 +7,7 @@ import {
 } from "@/lib/repo";
 import { runMatchingEngine } from "@/lib/matcher";
 import { maybeSendClarification } from "@/lib/clarification";
+import { resolveBatchesForPendingAmbiguity } from "@/lib/batchResolver";
 import { hashVpa } from "@/lib/hash";
 
 function verifySignature(body: string, signature: string, secret: string): boolean {
@@ -82,10 +83,11 @@ export async function POST(req: NextRequest) {
         payer_vpa_hash: payerVpaHash,
       });
 
-      // Crash-isolated execution of matching engine & clarification
+      // Crash-isolated execution of matching engine & clarification & batch solver
       try {
         runMatchingEngine(payment.id, paymentLinkOrderId);
         await maybeSendClarification(payment.id);
+        resolveBatchesForPendingAmbiguity();
       } catch (err: any) {
         addAudit({
           payment_id: payment.id,

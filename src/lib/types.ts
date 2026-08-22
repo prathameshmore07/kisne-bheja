@@ -17,6 +17,7 @@ export type AuditAction =
   | "clarification_sent"
   | "reply_interpreted"
   | "auto_resolved"
+  | "batch_resolved"
   | "approved"
   | "rejected"
   | "unlinked"
