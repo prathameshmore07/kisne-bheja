@@ -59,7 +59,7 @@ export default function DashboardPage() {
               <Link
                 key={p.id}
                 href={`/dashboard/${p.id}`}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-paper transition-colors"
+                className="flex items-center gap-4 px-5 py-4 hover:bg-paper hover:shadow-xs transition-all"
               >
                 <div className="font-mono text-sm w-28 shrink-0 font-medium">{formatRupees(p.amount)}</div>
 
