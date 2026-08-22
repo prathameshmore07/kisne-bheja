@@ -4,6 +4,7 @@ import { getTimelineForPayment } from "@/lib/audit";
 import { formatRupees } from "@/lib/format";
 import LiveConfidence from "@/components/LiveConfidence";
 import SimulatedWhatsApp from "@/components/SimulatedWhatsApp";
+import LiveAuditTimeline from "@/components/LiveAuditTimeline";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -97,41 +98,11 @@ export default async function PaymentDetailPage({ params }: PageProps) {
       </section>
 
       {/* Unified Audit & Ledger Timeline */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold">Audit & Resolution Timeline</h2>
-          <span className="text-xs text-muted font-mono">{timeline.length} Events</span>
-        </div>
-
-        <div className="bg-white border border-line rounded-lg p-5 font-mono text-xs divide-y divide-line/60">
-          {timeline.length === 0 ? (
-            <div className="text-muted">No timeline entries found.</div>
-          ) : (
-            timeline.map((item) => (
-              <div key={item.id} className="py-2.5 first:pt-0 last:pb-0 flex items-start gap-3">
-                <span className="text-muted shrink-0 text-[11px]">{item.timeStr}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] shrink-0 font-bold ${
-                    item.actor === "system"
-                      ? "bg-line text-ink"
-                      : item.actor === "gemini"
-                      ? "bg-amber/15 text-amber"
-                      : item.actor === "merchant"
-                      ? "bg-green/15 text-green"
-                      : "bg-line text-muted"
-                  }`}
-                >
-                  [{item.actor.toUpperCase()}]
-                </span>
-                <div className="flex-1 min-w-0">
-                  <span className="font-semibold text-ink">{item.title}: </span>
-                  <span className="text-muted">{item.detail}</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+      <LiveAuditTimeline
+        paymentId={payment.id}
+        initialTimeline={timeline}
+        paymentStatus={payment.status}
+      />
     </main>
   );
 }
