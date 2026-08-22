@@ -1,7 +1,8 @@
 import { getPaymentById, getOrderById } from "@/lib/repo";
 import { getAllCandidateScores } from "@/lib/scorer";
 import { getTimelineForPayment } from "@/lib/audit";
-import { formatRupees, statusColor, statusLabel } from "@/lib/format";
+import { formatRupees } from "@/lib/format";
+import LiveConfidence from "@/components/LiveConfidence";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -48,13 +49,6 @@ export default async function PaymentDetailPage({ params }: PageProps) {
               <span>Received: {new Date(payment.received_at).toLocaleTimeString("en-IN")}</span>
             </div>
           </div>
-
-          <div
-            className="text-xs font-body font-medium px-3 py-1.5 rounded"
-            style={{ color: statusColor(payment.status), backgroundColor: `${statusColor(payment.status)}1A` }}
-          >
-            {statusLabel(payment.status)}
-          </div>
         </div>
 
         {resolvedOrder && (
@@ -67,128 +61,27 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Candidate Orders with Evidence Breakdown */}
+      {/* Live Animated Evidence Graph */}
       <section className="mb-10">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-bold">Candidate Orders & Evidence</h2>
-          <span className="text-xs text-muted font-mono">{candidateScores.length} Candidate{candidateScores.length === 1 ? "" : "s"} Evaluated</span>
-        </div>
-
-        {candidateScores.length === 0 ? (
-          <div className="bg-white border border-line rounded-lg p-6 text-sm text-muted font-body">
-            No matching candidate orders recorded for this payment.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {candidateScores.map((cand, idx) => {
-              const isTopCandidate = idx === 0;
-              const isResolved = payment.resolved_order_id === cand.candidate_order_id;
-              const pct = Math.round(cand.confidence * 100);
-              const order = cand.order;
-
-              const borderColor = isResolved
-                ? "var(--green)"
-                : isTopCandidate && cand.confidence >= 0.6
-                ? statusColor(payment.status)
-                : "var(--line)";
-
-              return (
-                <div
-                  key={cand.candidate_order_id}
-                  className="bg-white rounded-lg p-5 transition-shadow"
-                  style={{
-                    borderWidth: isResolved || (isTopCandidate && cand.confidence >= 0.6) ? "2px" : "1px",
-                    borderColor: borderColor,
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-display font-semibold text-base">
-                          {order?.product_name ?? cand.candidate_order_id}
-                        </h3>
-                        {isResolved && (
-                          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-green/10 text-green font-bold">
-                            Linked
-                          </span>
-                        )}
-                        {isTopCandidate && !isResolved && (
-                          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber/10 text-amber font-bold">
-                            Top Match
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted font-mono mt-0.5">
-                        {order ? `${formatRupees(order.amount)} · ${order.customer_name ?? "No customer name"} (${order.customer_vpa_hash ?? "No VPA"})` : "Unknown order"}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="font-display font-bold text-xl">{pct}%</div>
-                      <div className="text-[10px] text-muted font-mono uppercase tracking-wider">Confidence</div>
-                    </div>
-                  </div>
-
-                  {/* Confidence Bar */}
-                  <div className="h-2 rounded-full bg-line overflow-hidden mb-4">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        backgroundColor:
-                          pct >= 85
-                            ? "var(--green)"
-                            : pct >= 60
-                            ? "var(--amber)"
-                            : "var(--muted)",
-                      }}
-                    />
-                  </div>
-
-                  {/* Evidence Items */}
-                  <div className="bg-paper rounded-md p-3">
-                    <div className="text-[11px] uppercase tracking-wider font-mono text-muted mb-2 font-semibold">
-                      Evidence Trail
-                    </div>
-                    {cand.evidence.length === 0 ? (
-                      <div className="text-xs text-muted font-body">No signals recorded.</div>
-                    ) : (
-                      <div className="space-y-1.5 font-mono text-xs">
-                        {cand.evidence.map((ev) => {
-                          const isPositive = ev.signal_weight > 0;
-                          return (
-                            <div key={ev.id} className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span
-                                  className={`px-1.5 py-0.2 rounded text-[10px] shrink-0 font-bold ${
-                                    isPositive
-                                      ? "bg-green/10 text-green"
-                                      : "bg-red/10 text-red"
-                                  }`}
-                                >
-                                  {isPositive ? "+" : ""}{Math.round(ev.signal_weight * 100)}%
-                                </span>
-                                <span className="font-medium text-ink uppercase text-[11px] shrink-0">
-                                  {ev.signal_type.replace(/_/g, " ")}
-                                </span>
-                                <span className="text-muted truncate text-[11px]">
-                                  — {ev.detail}
-                                </span>
-                              </div>
-                              <span className="text-muted shrink-0 text-[11px]">
-                                → {Math.round(ev.confidence_after * 100)}%
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <LiveConfidence
+          paymentId={payment.id}
+          initialPayment={{
+            id: payment.id,
+            status: payment.status,
+            confidence: payment.confidence,
+            amount: payment.amount,
+            resolved_order_id: payment.resolved_order_id,
+          }}
+          initialCandidates={candidateScores.map((c) => ({
+            order_id: c.candidate_order_id,
+            product_name: c.order?.product_name ?? "Unknown order",
+            amount: c.order?.amount,
+            customer_name: c.order?.customer_name,
+            customer_vpa_hash: c.order?.customer_vpa_hash,
+            confidence: c.confidence,
+            evidence: c.evidence,
+          }))}
+        />
       </section>
 
       {/* Unified Audit & Ledger Timeline */}
