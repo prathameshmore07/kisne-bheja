@@ -17,7 +17,8 @@
     "test-gemini": "tsx src/lib/test-gemini.ts",
     "test-clarification": "tsx src/lib/test-clarification.ts",
     "test-reply-interpret": "tsx src/lib/test-reply-interpret.ts",
-    "test-resolution": "tsx src/lib/test-resolution.ts"
+    "test-resolution": "tsx src/lib/test-resolution.ts",
+    "test-merchant-actions": "tsx src/lib/test-merchant-actions.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
