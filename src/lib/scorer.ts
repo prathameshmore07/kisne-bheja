@@ -251,7 +251,7 @@ export function determineAction(confidence: number): RecommendedAction {
   if (confidence >= autoThreshold) {
     return "auto_link";
   }
-  if (confidence >= approvalThreshold) {
+  if (confidence > approvalThreshold) {
     return "merchant_approval";
   }
   return "ask_customer";
