@@ -13,7 +13,8 @@
     "test-matcher": "tsx src/lib/test-matcher.ts",
     "test-audit": "tsx src/lib/test-audit.ts",
     "test-live": "tsx src/lib/test-live.ts",
-    "test-webhook": "tsx src/lib/test-webhook.ts"
+    "test-webhook": "tsx src/lib/test-webhook.ts",
+    "test-gemini": "tsx src/lib/test-gemini.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
