@@ -1,6 +1,7 @@
 import { getAllPayments, getOrderById } from "@/lib/repo";
 import { getDashboardMetrics } from "@/lib/metrics";
 import { formatRupees, statusColor, statusLabel } from "@/lib/format";
+import BatchResolveButton from "@/components/BatchResolveButton";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic"; // always read fresh from SQLite, no caching
@@ -47,7 +48,10 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <div className="text-xs uppercase tracking-wide text-muted font-mono mb-3">Payments</div>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div className="text-xs uppercase tracking-wide text-muted font-mono">Payments</div>
+          <BatchResolveButton unresolvedCount={metrics.unresolvedCount} />
+        </div>
         <div className="divide-y divide-line border border-line rounded-md overflow-hidden bg-white">
           {payments.length === 0 && (
             <div className="p-6 text-sm text-muted font-body">No payments yet — trigger a test payment to see it here.</div>

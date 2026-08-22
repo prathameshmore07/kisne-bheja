@@ -97,6 +97,7 @@ The Confidence Ledger evaluates each candidate pending order independently again
 | `conversation` | `+0.40` to `+0.45` | Customer natural language confirmation parsed via Gemini and weighted by model confidence. |
 | `negative` | `-1.00` | Applied immediately when a merchant clicks "Not this" or unlinks a previous match. |
 | `partial` | `+0.25` | Partial amount match where payment is an exact installment or deposit. |
+| `batch_assignment` | `+0.35` | Mutual exclusion boost applied when global maximum weight bipartite matching uniquely untangles multi-payment collision clusters. |
 
 ---
 

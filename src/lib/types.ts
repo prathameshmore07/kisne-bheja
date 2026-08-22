@@ -8,7 +8,8 @@ export type SignalType =
   | "link_metadata"
   | "conversation"
   | "negative"
-  | "partial";
+  | "partial"
+  | "batch_assignment";
 export type AuditActor = "system" | "gemini" | "merchant";
 export type AuditAction =
   | "webhook_received"
@@ -20,7 +21,8 @@ export type AuditAction =
   | "rejected"
   | "unlinked"
   | "manual_review"
-  | "payment_failed";
+  | "payment_failed"
+  | "batch_assignment";
 
 export interface Order {
   id: string;
