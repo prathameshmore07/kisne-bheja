@@ -19,7 +19,8 @@
     "test-reply-interpret": "tsx src/lib/test-reply-interpret.ts",
     "test-resolution": "tsx src/lib/test-resolution.ts",
     "test-merchant-actions": "tsx src/lib/test-merchant-actions.ts",
-    "test-failures": "tsx src/lib/test-failures.ts"
+    "test-failures": "tsx src/lib/test-failures.ts",
+    "benchmark": "DATABASE_PATH=./benchmark.db tsx src/lib/benchmark.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
