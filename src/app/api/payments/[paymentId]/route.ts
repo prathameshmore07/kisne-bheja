@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPaymentById, getOrderById } from "@/lib/repo";
+import { getPaymentById, getOrderById, getChatForPayment } from "@/lib/repo";
 import { getAllCandidateScores } from "@/lib/scorer";
 import { getTimelineForPayment } from "@/lib/audit";
 
@@ -21,6 +21,7 @@ export async function GET(
 
     const candidateScores = getAllCandidateScores(paymentId);
     const timeline = getTimelineForPayment(paymentId);
+    const chat = getChatForPayment(paymentId);
 
     const candidates = candidateScores.map((c) => ({
       order_id: c.candidate_order_id,
@@ -45,6 +46,7 @@ export async function GET(
       resolvedOrder,
       candidates,
       timeline,
+      chat,
     });
   } catch (error) {
     console.error("Error fetching payment data:", error);

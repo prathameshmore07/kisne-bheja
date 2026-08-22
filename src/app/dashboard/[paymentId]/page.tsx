@@ -1,8 +1,9 @@
-import { getPaymentById, getOrderById } from "@/lib/repo";
+import { getPaymentById, getOrderById, getChatForPayment } from "@/lib/repo";
 import { getAllCandidateScores } from "@/lib/scorer";
 import { getTimelineForPayment } from "@/lib/audit";
 import { formatRupees } from "@/lib/format";
 import LiveConfidence from "@/components/LiveConfidence";
+import SimulatedWhatsApp from "@/components/SimulatedWhatsApp";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -23,6 +24,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
   const resolvedOrder = payment.resolved_order_id ? getOrderById(payment.resolved_order_id) : undefined;
   const candidateScores = getAllCandidateScores(paymentId);
   const timeline = getTimelineForPayment(paymentId);
+  const initialChat = getChatForPayment(paymentId);
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
@@ -81,6 +83,16 @@ export default async function PaymentDetailPage({ params }: PageProps) {
             confidence: c.confidence,
             evidence: c.evidence,
           }))}
+        />
+      </section>
+
+      {/* Customer Conversation (Simulated WhatsApp) */}
+      <section className="mb-10">
+        <div className="text-xs uppercase tracking-wide text-muted font-mono mb-3">Customer conversation</div>
+        <SimulatedWhatsApp
+          paymentId={payment.id}
+          initialChat={initialChat}
+          paymentStatus={payment.status}
         />
       </section>
 
