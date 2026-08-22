@@ -129,6 +129,7 @@ export default function LiveConfidence({
         {candidates.map((candidate, idx) => (
           <CandidateEvidenceCard
             key={candidate.order_id}
+            paymentId={paymentId}
             candidate={candidate}
             isBest={idx === 0}
             color={color}

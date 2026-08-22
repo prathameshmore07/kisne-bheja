@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useAnimatedNumber } from "@/lib/useAnimatedNumber";
 
 interface EvidenceItem {
@@ -33,6 +33,7 @@ const SIGNAL_LABELS: Record<string, string> = {
 };
 
 interface CandidateEvidenceCardProps {
+  paymentId: string;
   candidate: CandidateItem;
   isBest: boolean;
   color: string;
@@ -43,6 +44,7 @@ interface CandidateEvidenceCardProps {
 }
 
 export default function CandidateEvidenceCard({
+  paymentId,
   candidate,
   isBest,
   color,
@@ -53,6 +55,28 @@ export default function CandidateEvidenceCard({
 }: CandidateEvidenceCardProps) {
   const animatedPct = useAnimatedNumber(Math.round(candidate.confidence * 100));
   const displayPct = Math.round(animatedPct);
+
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [explaining, setExplaining] = useState(false);
+
+  async function handleExplain() {
+    setExplaining(true);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}/explain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: candidate.order_id }),
+      });
+      const data = await res.json();
+      if (data.explanation) {
+        setExplanation(data.explanation);
+      }
+    } catch {
+      setExplanation("Unable to generate live explanation.");
+    } finally {
+      setExplaining(false);
+    }
+  }
 
   return (
     <div
@@ -117,7 +141,7 @@ export default function CandidateEvidenceCard({
       </div>
 
       {/* Evidence Trail */}
-      <div className="space-y-2">
+      <div className="space-y-2 mb-3">
         {candidate.evidence.map((e) => {
           const isPositive = e.signal_weight >= 0;
           return (
@@ -141,6 +165,28 @@ export default function CandidateEvidenceCard({
         })}
         {candidate.evidence.length === 0 && (
           <div className="text-xs text-muted font-body">No evidence recorded for this candidate.</div>
+        )}
+      </div>
+
+      {/* AI Explanation Accordion / Button */}
+      <div className="pt-3 border-t border-line/60">
+        {!explanation && (
+          <button
+            type="button"
+            onClick={handleExplain}
+            disabled={explaining}
+            className="text-xs font-mono text-muted hover:text-ink underline disabled:opacity-50 cursor-pointer transition-colors"
+          >
+            {explaining ? "Asking Gemini..." : "Why this match?"}
+          </button>
+        )}
+        {explanation && (
+          <div className="bg-paper border border-line rounded p-2.5 text-xs font-body text-ink italic animate-[fadeIn_0.4s_ease-out]">
+            <span className="font-mono not-italic font-semibold text-[11px] uppercase text-muted block mb-0.5">
+              Gemini Reasoning
+            </span>
+            &ldquo;{explanation}&rdquo;
+          </div>
         )}
       </div>
     </div>

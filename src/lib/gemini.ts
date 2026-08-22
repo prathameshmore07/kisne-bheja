@@ -187,3 +187,37 @@ Respond ONLY with valid JSON:
     return fallback;
   }
 }
+
+export async function explainEvidence(
+  signals: Array<{ signal_type: string; weight: number; detail: string }>
+): Promise<{ explanation: string }> {
+  const signalSummary = signals
+    .map((s) => `${s.signal_type} (${s.weight >= 0 ? "+" : ""}${Math.round(s.weight * 100)}%): ${s.detail}`)
+    .join(", ");
+
+  const fallback = signals.length > 0
+    ? `Confidence driven by ${signalSummary}.`
+    : "No evidence recorded yet for this candidate.";
+
+  try {
+    const model = getModel();
+    if (!model) return { explanation: fallback };
+
+    const prompt = `You are an evidence explanation engine for a fintech reconciliation ledger.
+Explain why this candidate order has its current score based on the following recorded evidence signals:
+${JSON.stringify(signals)}
+
+Write a single, concise, professional sentence (max 25 words) explaining the primary reason for this candidate's score.
+Respond ONLY with valid JSON:
+{
+  "explanation": "one sentence explanation"
+}`;
+
+    const result = await model.generateContent(prompt);
+    const parsed = extractJson(result.response.text());
+    return { explanation: parsed.explanation ?? fallback };
+  } catch (err) {
+    console.warn("Gemini explain evidence error (using fallback):", err);
+    return { explanation: fallback };
+  }
+}
