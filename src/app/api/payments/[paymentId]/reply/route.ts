@@ -19,8 +19,8 @@ export async function POST(
       return NextResponse.json({ error: "message is required" }, { status: 400 });
     }
 
-    const interpretation = await processCustomerReply(paymentId, message);
-    return NextResponse.json({ status: "processed", interpretation });
+    const result = await processCustomerReply(paymentId, message);
+    return NextResponse.json({ status: "processed", ...result });
   } catch (error: any) {
     console.error("Process customer reply error:", error);
     return NextResponse.json({ error: error?.message ?? "Error" }, { status: 500 });

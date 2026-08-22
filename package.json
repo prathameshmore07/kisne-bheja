@@ -16,7 +16,8 @@
     "test-webhook": "tsx src/lib/test-webhook.ts",
     "test-gemini": "tsx src/lib/test-gemini.ts",
     "test-clarification": "tsx src/lib/test-clarification.ts",
-    "test-reply-interpret": "tsx src/lib/test-reply-interpret.ts"
+    "test-reply-interpret": "tsx src/lib/test-reply-interpret.ts",
+    "test-resolution": "tsx src/lib/test-resolution.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -5,6 +5,7 @@ import {
 } from "./repo";
 import { getAllCandidateScores, addEvidenceAndRecompute } from "./scorer";
 import { interpretCustomerReply } from "./gemini";
+import { finalizeResolution, FinalizationOutcome } from "./resolution";
 
 export interface ProcessReplyResult {
   matched_order_hint: string | null;
@@ -15,7 +16,7 @@ export interface ProcessReplyResult {
 export async function processCustomerReply(
   paymentId: string,
   customerMessage: string
-): Promise<ProcessReplyResult> {
+): Promise<{ interpretation: ProcessReplyResult; outcome: FinalizationOutcome }> {
   const payment = getPaymentById(paymentId);
   if (!payment) {
     throw new Error(`Payment ${paymentId} not found`);
@@ -52,10 +53,6 @@ export async function processCustomerReply(
     interpretation.matched_order_hint &&
     interpretation.confidence_signal > 0
   ) {
-    const matchedCandidate = allCandidates.find(
-      (c) => c.candidate_order_id === interpretation.matched_order_hint
-    );
-
     const signalWeight = Math.round(interpretation.confidence_signal * 0.45 * 100) / 100;
 
     addEvidenceAndRecompute({
@@ -66,5 +63,8 @@ export async function processCustomerReply(
       detail: `Customer confirmed order: "${customerMessage}" (${interpretation.reasoning})`,
     });
   }
-  return interpretation;
+
+  // 6. Finalize resolution based on updated confidence and stopping rule
+  const outcome = finalizeResolution(paymentId, { afterClarification: true });
+  return { interpretation, outcome };
 }
