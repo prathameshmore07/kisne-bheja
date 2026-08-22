@@ -1,0 +1,169 @@
+import {
+  getPaymentById,
+  getCandidateOrders,
+  getPendingOrders,
+  resolvePayment,
+  updatePaymentConfidence,
+  addAudit,
+} from "./repo";
+import {
+  scoreAmountMatch,
+  scoreTiming,
+  scorePayerHistory,
+  scoreLinkMetadata,
+  addEvidenceAndRecompute,
+  getBestCandidate,
+  getAllCandidateScores,
+  determineAction,
+  CandidateScore,
+  RecommendedAction,
+} from "./scorer";
+
+export interface MatchingResult {
+  action: RecommendedAction | "manual_review";
+  paymentId: string;
+  best?: CandidateScore;
+  candidates: CandidateScore[];
+}
+
+export function runMatchingEngine(paymentId: string): MatchingResult {
+  const payment = getPaymentById(paymentId);
+  if (!payment) {
+    throw new Error(`Payment with id ${paymentId} not found`);
+  }
+
+  // Add initial audit entry
+  addAudit({
+    payment_id: payment.id,
+    action: "webhook_received",
+    actor: "system",
+    detail: `Processing payment ${payment.id} for ₹${(payment.amount / 100).toFixed(2)}`,
+  });
+
+  // Fetch pending candidate orders that could plausibly match
+  const allPending = getCandidateOrders(payment.amount);
+  const exactCandidates = allPending.filter((o) => o.amount === payment.amount);
+  
+  let candidatePool: typeof allPending = [];
+  if (exactCandidates.length > 0) {
+    candidatePool = exactCandidates;
+  } else {
+    // Check if it could be a partial payment towards a larger order
+    const partialCandidates = getPendingOrders().filter((o) => o.amount > payment.amount);
+    candidatePool = partialCandidates;
+  }
+
+  if (candidatePool.length === 0) {
+    updatePaymentConfidence(payment.id, 0, "manual_review");
+    addAudit({
+      payment_id: payment.id,
+      action: "manual_review",
+      actor: "system",
+      detail: "No matching candidate orders found for payment amount",
+    });
+    return {
+      action: "manual_review",
+      paymentId: payment.id,
+      best: undefined,
+      candidates: [],
+    };
+  }
+
+  const sameAmountCount = exactCandidates.length;
+
+  for (const order of candidatePool) {
+    const amt = scoreAmountMatch(payment.amount, order.amount, sameAmountCount);
+    if (amt) {
+      addEvidenceAndRecompute({
+        payment_id: payment.id,
+        candidate_order_id: order.id,
+        signal_type: amt.signal_type,
+        signal_weight: amt.weight,
+        detail: amt.detail,
+      });
+    }
+
+    const timing = scoreTiming(payment.received_at, order.created_at);
+    if (timing) {
+      addEvidenceAndRecompute({
+        payment_id: payment.id,
+        candidate_order_id: order.id,
+        signal_type: timing.signal_type,
+        signal_weight: timing.weight,
+        detail: timing.detail,
+      });
+    }
+
+    const payer = scorePayerHistory(payment.payer_vpa_hash, order.customer_vpa_hash);
+    if (payer) {
+      addEvidenceAndRecompute({
+        payment_id: payment.id,
+        candidate_order_id: order.id,
+        signal_type: payer.signal_type,
+        signal_weight: payer.weight,
+        detail: payer.detail,
+      });
+    }
+
+    if (payment.razorpay_payment_link_id) {
+      const link = scoreLinkMetadata(payment.razorpay_payment_link_id, order.id);
+      if (link) {
+        addEvidenceAndRecompute({
+          payment_id: payment.id,
+          candidate_order_id: order.id,
+          signal_type: link.signal_type,
+          signal_weight: link.weight,
+          detail: link.detail,
+        });
+      }
+    }
+  }
+
+  const best = getBestCandidate(payment.id);
+  const allCandidateScores = getAllCandidateScores(payment.id);
+
+  if (!best) {
+    updatePaymentConfidence(payment.id, 0, "manual_review");
+    return {
+      action: "manual_review",
+      paymentId: payment.id,
+      best: undefined,
+      candidates: [],
+    };
+  }
+
+  const action = determineAction(best.confidence);
+
+  if (action === "auto_link") {
+    resolvePayment(payment.id, best.candidate_order_id, best.confidence);
+    addAudit({
+      payment_id: payment.id,
+      action: "auto_resolved",
+      actor: "system",
+      detail: `Auto-linked payment ${payment.id} to order ${best.order?.product_name ?? best.candidate_order_id} with confidence ${(best.confidence * 100).toFixed(0)}%`,
+    });
+  } else if (action === "merchant_approval") {
+    updatePaymentConfidence(payment.id, best.confidence, "ambiguous");
+    addAudit({
+      payment_id: payment.id,
+      action: "evidence_added",
+      actor: "system",
+      detail: `Candidate ${best.order?.product_name ?? best.candidate_order_id} reached ${(best.confidence * 100).toFixed(0)}% confidence; routed for merchant review`,
+    });
+  } else {
+    updatePaymentConfidence(payment.id, best.confidence, "unresolved");
+    addAudit({
+      payment_id: payment.id,
+      action: "clarification_sent",
+      actor: "system",
+      detail: `Ambiguous payment with highest confidence ${(best.confidence * 100).toFixed(0)}%; automated clarification initiated`,
+    });
+  }
+
+  return {
+    action,
+    paymentId: payment.id,
+    best,
+    candidates: allCandidateScores,
+  };
+}

@@ -39,7 +39,7 @@ export function scoreAmountMatch(
     if (sameAmountCount === 1) {
       return {
         signal_type: "amount_match",
-        weight: 0.5,
+        weight: 0.75,
         detail: `Unique exact amount match (₹${(paymentAmount / 100).toFixed(2)})`,
       };
     } else {

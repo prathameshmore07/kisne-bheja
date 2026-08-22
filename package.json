@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seed": "tsx src/lib/seed.ts",
     "test-repo": "tsx src/lib/test-repo.ts",
-    "test-scorer": "tsx src/lib/test-scorer.ts"
+    "test-scorer": "tsx src/lib/test-scorer.ts",
+    "test-matcher": "tsx src/lib/test-matcher.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
