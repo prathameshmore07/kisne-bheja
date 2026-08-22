@@ -26,7 +26,7 @@ export interface MatchingResult {
   candidates: CandidateScore[];
 }
 
-export function runMatchingEngine(paymentId: string): MatchingResult {
+export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string): MatchingResult {
   const payment = getPaymentById(paymentId);
   if (!payment) {
     throw new Error(`Payment with id ${paymentId} not found`);
@@ -97,15 +97,15 @@ export function runMatchingEngine(paymentId: string): MatchingResult {
       });
     }
 
-    if (payment.razorpay_payment_link_id) {
-      const link = scoreLinkMetadata(payment.razorpay_payment_link_id, order.id);
+    if (paymentLinkOrderId && order.id === paymentLinkOrderId) {
+      const link = scoreLinkMetadata(payment.razorpay_payment_link_id ?? "payment_link", order.id);
       if (link) {
         addEvidenceAndRecompute({
           payment_id: payment.id,
           candidate_order_id: order.id,
           signal_type: link.signal_type,
           signal_weight: link.weight,
-          detail: link.detail,
+          detail: `Payment link metadata explicitly matches order: ${order.product_name}`,
         });
       }
     }

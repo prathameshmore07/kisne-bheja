@@ -82,6 +82,12 @@ export function getPaymentById(id: string): Payment | undefined {
   return db.prepare(`SELECT * FROM payments WHERE id = ?`).get(id) as Payment | undefined;
 }
 
+export function getPaymentByRazorpayId(razorpayPaymentId: string): Payment | undefined {
+  return db
+    .prepare(`SELECT * FROM payments WHERE razorpay_payment_id = ?`)
+    .get(razorpayPaymentId) as Payment | undefined;
+}
+
 export function getAllPayments(): Payment[] {
   return db.prepare(`SELECT * FROM payments ORDER BY received_at DESC`).all() as Payment[];
 }
