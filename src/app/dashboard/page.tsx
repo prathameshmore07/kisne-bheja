@@ -24,6 +24,9 @@ export default function DashboardPage() {
       <header className="mb-8">
         <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">Kisne Bheja</div>
         <h1 className="font-display text-2xl font-bold">Who sent this payment?</h1>
+        <Link href="/dashboard/metrics" className="text-xs text-muted font-mono hover:underline mt-1 inline-block">
+          view benchmark metrics →
+        </Link>
       </header>
 
       <section className="flex flex-wrap gap-8 border-y border-line py-6 mb-8">

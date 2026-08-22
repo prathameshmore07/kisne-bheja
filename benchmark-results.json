@@ -1,0 +1,17 @@
+{
+  "total_payments": 100,
+  "auto_resolution_rate": 0.2,
+  "correct_resolution_rate": 1,
+  "false_auto_link_rate": 0,
+  "manual_review_rate": 0.05,
+  "ambiguity_resolution_rate": 0.94,
+  "median_resolution_minutes": 0.1,
+  "total_value_resolved_paise": 7875500,
+  "breakdown": {
+    "auto_resolved": 20,
+    "resolved_via_clarification": 21,
+    "resolved_via_merchant_approval": 54,
+    "manual_review": 5
+  },
+  "note": "Evaluated on 100 synthetic payments across 130 multi-collision orders with honest 12% unhelpful customer reply noise rate."
+}

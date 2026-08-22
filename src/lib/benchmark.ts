@@ -277,7 +277,10 @@ async function runBenchmark(): Promise<BenchmarkResult> {
 
 async function main() {
   const res = await runBenchmark();
+  const outputPath = path.resolve(process.cwd(), "benchmark-results.json");
+  fs.writeFileSync(outputPath, JSON.stringify(res, null, 2));
   console.log("\n=== BENCHMARK RESULTS ===");
   console.log(JSON.stringify(res, null, 2));
+  console.log(`\nResults written to ${outputPath}`);
 }
 main().catch(console.error);
