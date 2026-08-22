@@ -89,16 +89,39 @@ export async function interpretCustomerReply(
     reasoning: string;
   } {
     const lower = customerMessage.toLowerCase().trim();
+
+    // 1. Exact full name match
+    for (const c of candidates) {
+      const prodLower = c.product_name.toLowerCase();
+      if (lower.includes(prodLower)) {
+        return {
+          matched_order_hint: c.order_id,
+          confidence_signal: 0.90,
+          reasoning: `Fallback exact keyword match (Gemini unavailable) on "${c.product_name}"`,
+        };
+      }
+    }
+
+    // 2. Best token overlap
+    let bestCandidate: (typeof candidates)[0] | null = null;
+    let maxMatches = 0;
+
     for (const c of candidates) {
       const prodLower = c.product_name.toLowerCase();
       const words = prodLower.split(/\s+/).filter((w) => w.length > 2);
-      if (lower.includes(prodLower) || words.some((w) => lower.includes(w))) {
-        return {
-          matched_order_hint: c.order_id,
-          confidence_signal: 0.85,
-          reasoning: `Fallback keyword match (Gemini unavailable) on "${c.product_name}"`,
-        };
+      const matches = words.filter((w) => lower.includes(w)).length;
+      if (matches > maxMatches) {
+        maxMatches = matches;
+        bestCandidate = c;
       }
+    }
+
+    if (bestCandidate && maxMatches > 0) {
+      return {
+        matched_order_hint: bestCandidate.order_id,
+        confidence_signal: 0.85,
+        reasoning: `Fallback keyword match (Gemini unavailable) on "${bestCandidate.product_name}"`,
+      };
     }
 
     return {

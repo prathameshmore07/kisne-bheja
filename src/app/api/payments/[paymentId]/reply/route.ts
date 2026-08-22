@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addChatMessage, getPaymentById } from "@/lib/repo";
+import { getPaymentById } from "@/lib/repo";
+import { processCustomerReply } from "@/lib/reply";
 
 export async function POST(
   req: NextRequest,
@@ -18,10 +19,10 @@ export async function POST(
       return NextResponse.json({ error: "message is required" }, { status: 400 });
     }
 
-    const chatMessage = addChatMessage(paymentId, "customer", message);
-    return NextResponse.json({ status: "stored", message: chatMessage });
+    const interpretation = await processCustomerReply(paymentId, message);
+    return NextResponse.json({ status: "processed", interpretation });
   } catch (error: any) {
-    console.error("Reply route error:", error);
+    console.error("Process customer reply error:", error);
     return NextResponse.json({ error: error?.message ?? "Error" }, { status: 500 });
   }
 }

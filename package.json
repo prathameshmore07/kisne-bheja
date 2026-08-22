@@ -15,7 +15,8 @@
     "test-live": "tsx src/lib/test-live.ts",
     "test-webhook": "tsx src/lib/test-webhook.ts",
     "test-gemini": "tsx src/lib/test-gemini.ts",
-    "test-clarification": "tsx src/lib/test-clarification.ts"
+    "test-clarification": "tsx src/lib/test-clarification.ts",
+    "test-reply-interpret": "tsx src/lib/test-reply-interpret.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
