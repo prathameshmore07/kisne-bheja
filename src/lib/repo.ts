@@ -14,6 +14,36 @@ import {
 
 // ---------- ORDERS ----------
 
+export function createOrder(input: {
+  product_name: string;
+  amount: number;
+  customer_name?: string;
+  customer_vpa_hash?: string;
+}): Order {
+  const id = randomUUID();
+  const created_at = Date.now();
+  db.prepare(`
+    INSERT INTO orders (id, product_name, amount, customer_name, customer_vpa_hash, status, created_at)
+    VALUES (?, ?, ?, ?, ?, 'pending', ?)
+  `).run(
+    id,
+    input.product_name,
+    input.amount,
+    input.customer_name ?? null,
+    input.customer_vpa_hash ?? null,
+    created_at
+  );
+  return {
+    id,
+    product_name: input.product_name,
+    amount: input.amount,
+    customer_name: input.customer_name ?? null,
+    customer_vpa_hash: input.customer_vpa_hash ?? null,
+    status: "pending",
+    created_at,
+  };
+}
+
 export function getPendingOrders(): Order[] {
   return db.prepare(`SELECT * FROM orders WHERE status = 'pending'`).all() as Order[];
 }

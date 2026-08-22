@@ -1,15 +1,18 @@
-import { createPayment, getPaymentById, getOrderById, getCandidateOrders } from "./repo";
+import { createPayment, getPaymentById, getOrderById, createOrder } from "./repo";
 import { runMatchingEngine } from "./matcher";
 import { approvePayment, rejectPayment, unlinkPaymentAction } from "./merchantActions";
 import { getAllCandidateScores } from "./scorer";
 
 async function main() {
+  const orderA = createOrder({ product_name: "Test Red Kurta", amount: 49900 });
+  const orderB = createOrder({ product_name: "Test Blue Kurta", amount: 49900 });
+
   const payment = createPayment({ amount: 49900 });
   runMatchingEngine(payment.id);
 
   const candidates = getAllCandidateScores(payment.id);
-  const redKurta = candidates.find(c => c.order?.product_name === "Red Kurta")!;
-  const blueKurta = candidates.find(c => c.order?.product_name === "Blue Kurta")!;
+  const redKurta = candidates.find(c => c.candidate_order_id === orderA.id)!;
+  const blueKurta = candidates.find(c => c.candidate_order_id === orderB.id)!;
 
   console.log("--- Initial Candidates Count:", candidates.length);
 
