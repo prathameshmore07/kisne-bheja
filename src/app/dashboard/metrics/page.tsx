@@ -50,10 +50,11 @@ export default function BenchmarkMetricsPage() {
         </Link>
         <Link href="/" className="inline-block hover:opacity-85 transition-opacity">
           <Image
-            src="/brand/typography/hero_typography.png"
+            src="/brand/typography/wordmark_bold.png"
             alt="kisne bheja"
             width={160}
             height={38}
+            unoptimized
             className="h-8 sm:h-9 w-auto object-contain"
           />
         </Link>
