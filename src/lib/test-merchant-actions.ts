@@ -2,15 +2,17 @@ import { createPayment, getPaymentById, getOrderById, createOrder } from "./repo
 import { runMatchingEngine } from "./matcher";
 import { approvePayment, rejectPayment, unlinkPaymentAction } from "./merchantActions";
 import { getAllCandidateScores } from "./scorer";
+import { seedDatabase } from "./seed";
 
 async function main() {
-  const orderA = createOrder({ product_name: "Test Red Kurta", amount: 49900 });
-  const orderB = createOrder({ product_name: "Test Blue Kurta", amount: 49900 });
+  await seedDatabase();
+  const orderA = await createOrder({ product_name: "Test Red Kurta", amount: 49900 });
+  const orderB = await createOrder({ product_name: "Test Blue Kurta", amount: 49900 });
 
-  const payment = createPayment({ amount: 49900 });
-  runMatchingEngine(payment.id);
+  const payment = await createPayment({ amount: 49900 });
+  await runMatchingEngine(payment.id);
 
-  const candidates = getAllCandidateScores(payment.id);
+  const candidates = await getAllCandidateScores(payment.id);
   const redKurta = candidates.find(c => c.candidate_order_id === orderA.id)!;
   const blueKurta = candidates.find(c => c.candidate_order_id === orderB.id)!;
 
@@ -18,26 +20,26 @@ async function main() {
 
   // 1. Test Reject
   console.log("Rejecting Red Kurta...");
-  rejectPayment(payment.id, redKurta.candidate_order_id);
-  const afterReject = getAllCandidateScores(payment.id);
+  await rejectPayment(payment.id, redKurta.candidate_order_id);
+  const afterReject = await getAllCandidateScores(payment.id);
   const rejectedRed = afterReject.find(c => c.candidate_order_id === redKurta.candidate_order_id);
   console.log("Red Kurta confidence after rejection:", rejectedRed?.confidence);
 
   // 2. Test Approve
   console.log("Approving Blue Kurta...");
-  approvePayment(payment.id, blueKurta.candidate_order_id);
-  const paymentAfterApprove = getPaymentById(payment.id)!;
-  const orderAfterApprove = getOrderById(blueKurta.candidate_order_id)!;
+  await approvePayment(payment.id, blueKurta.candidate_order_id);
+  const paymentAfterApprove = (await getPaymentById(payment.id))!;
+  const orderAfterApprove = (await getOrderById(blueKurta.candidate_order_id))!;
   console.log("Payment status after approve:", paymentAfterApprove.status, "Resolved order:", paymentAfterApprove.resolved_order_id);
   console.log("Order status after approve:", orderAfterApprove.status);
 
   // 3. Test Unlink
   console.log("Unlinking Blue Kurta...");
-  unlinkPaymentAction(payment.id);
-  const paymentAfterUnlink = getPaymentById(payment.id)!;
-  const orderAfterUnlink = getOrderById(blueKurta.candidate_order_id)!;
+  await unlinkPaymentAction(payment.id);
+  const paymentAfterUnlink = (await getPaymentById(payment.id))!;
+  const orderAfterUnlink = (await getOrderById(blueKurta.candidate_order_id))!;
   console.log("Payment status after unlink:", paymentAfterUnlink.status, "Resolved order:", paymentAfterUnlink.resolved_order_id);
   console.log("Order status after unlink (should be pending):", orderAfterUnlink.status);
 }
 
-main();
+main().catch(console.error);

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPaymentById, getOrderById, getChatForPayment } from "@/lib/repo";
+import {
+  getPaymentById,
+  getOrderById,
+  getChatForPayment,
+  getBatchResolutionInfoForPayment,
+} from "@/lib/repo";
 import { getAllCandidateScores } from "@/lib/scorer";
 import { getTimelineForPayment } from "@/lib/audit";
 
@@ -9,19 +14,20 @@ export async function GET(
 ) {
   try {
     const { paymentId } = await props.params;
-    const payment = getPaymentById(paymentId);
+    const payment = await getPaymentById(paymentId);
 
     if (!payment) {
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
     }
 
     const resolvedOrder = payment.resolved_order_id
-      ? getOrderById(payment.resolved_order_id)
+      ? await getOrderById(payment.resolved_order_id)
       : null;
 
-    const candidateScores = getAllCandidateScores(paymentId);
-    const timeline = getTimelineForPayment(paymentId);
-    const chat = getChatForPayment(paymentId);
+    const candidateScores = await getAllCandidateScores(paymentId);
+    const timeline = await getTimelineForPayment(paymentId);
+    const chat = await getChatForPayment(paymentId);
+    const batchResolution = await getBatchResolutionInfoForPayment(paymentId);
 
     const candidates = candidateScores.map((c) => ({
       order_id: c.candidate_order_id,
@@ -47,6 +53,7 @@ export async function GET(
       candidates,
       timeline,
       chat,
+      batchResolution,
     });
   } catch (error) {
     console.error("Error fetching payment data:", error);

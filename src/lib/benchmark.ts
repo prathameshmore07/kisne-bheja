@@ -1,13 +1,12 @@
-import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import db from "./db";
 import {
   createPaymentFromWebhook,
   getPaymentById,
   getAllPayments,
-  getOrderById,
+  createOrder,
   resolvePayment,
+  clearAllData,
 } from "./repo";
 import { runMatchingEngine } from "./matcher";
 import { maybeSendClarification } from "./clarification";
@@ -40,22 +39,7 @@ interface BenchmarkResult {
   note: string;
 }
 
-function initBenchmarkDb() {
-  db.exec(`
-    DELETE FROM simulated_chat;
-    DELETE FROM evidence_log;
-    DELETE FROM audit_log;
-    DELETE FROM payments;
-    DELETE FROM orders;
-  `);
-}
-
-function generateSyntheticOrders(): GroundTruthPair[] {
-  const insertOrder = db.prepare(`
-    INSERT INTO orders (id, product_name, amount, customer_name, customer_vpa_hash, status, created_at)
-    VALUES (?, ?, ?, ?, ?, 'pending', ?)
-  `);
-
+async function generateSyntheticOrders(): Promise<GroundTruthPair[]> {
   const now = Date.now();
   const pairs: GroundTruthPair[] = [];
 
@@ -123,7 +107,6 @@ function generateSyntheticOrders(): GroundTruthPair[] {
   // Generate 130 realistic orders
   for (let i = 0; i < 130; i++) {
     const base = items[i % items.length];
-    const orderId = crypto.randomUUID();
     const customerName = `Customer ${i + 1}`;
     const customerVpa = `user_${i + 1}@upi`;
     const vpaHash = hashVpa(customerVpa);
@@ -132,14 +115,20 @@ function generateSyntheticOrders(): GroundTruthPair[] {
     const variantTag = iteration > 0 ? ` (Batch ${iteration + 1})` : "";
     const productName = `${base.name}${variantTag}`;
 
-    // Natural timestamp distribution (some fresh, some older)
     const ageMinutes = (i % 4 === 0) ? (3 + (i % 10)) : (i % 4 === 1) ? (35 + (i % 30)) : (120 + (i * 5));
     const createdAt = now - (ageMinutes * 60 * 1000);
 
-    insertOrder.run(orderId, productName, base.amount, customerName, vpaHash, createdAt);
+    const order = await createOrder({
+      product_name: productName,
+      amount: base.amount,
+      customer_name: customerName,
+      customer_vpa_hash: vpaHash,
+      created_at: createdAt,
+      is_benchmark: true,
+    });
 
     pairs.push({
-      orderId,
+      orderId: order.id,
       orderName: productName,
       amount: base.amount,
       customerVpaHash: vpaHash,
@@ -151,11 +140,11 @@ function generateSyntheticOrders(): GroundTruthPair[] {
 }
 
 async function runBenchmark(): Promise<BenchmarkResult> {
-  console.log("Setting up benchmark database...");
-  initBenchmarkDb();
+  console.log("Cleaning benchmark data in Supabase...");
+  await clearAllData(true);
 
-  console.log("Generating 130 synthetic orders...");
-  const orderPool = generateSyntheticOrders();
+  console.log("Generating 130 synthetic orders in Supabase...");
+  const orderPool = await generateSyntheticOrders();
 
   console.log("Running 100 synthetic payments through full pipeline...");
   const totalPayments = 100;
@@ -177,14 +166,14 @@ async function runBenchmark(): Promise<BenchmarkResult> {
     const rzpId = `pay_bench_${i + 1}`;
 
     // Payment arrives
-    const payment = createPaymentFromWebhook({
+    const payment = await createPaymentFromWebhook({
       razorpay_payment_id: rzpId,
       amount: targetOrder.amount,
       payer_vpa_hash: payerVpaHash,
     });
 
-    const matchResult = runMatchingEngine(payment.id);
-    let p = getPaymentById(payment.id)!;
+    await runMatchingEngine(payment.id);
+    let p = (await getPaymentById(payment.id))!;
 
     if (p.status === "resolved") {
       autoResolvedCount++;
@@ -208,7 +197,7 @@ async function runBenchmark(): Promise<BenchmarkResult> {
         : "Haan bheja hai maine";
 
       const { outcome } = await processCustomerReply(payment.id, replyText);
-      p = getPaymentById(payment.id)!;
+      p = (await getPaymentById(payment.id))!;
 
       if (outcome === "auto_resolved" || p.status === "resolved") {
         resolvedViaClarification++;
@@ -221,7 +210,7 @@ async function runBenchmark(): Promise<BenchmarkResult> {
         latenciesMinutes.push(0.05);
       } else if (outcome === "merchant_approval" || p.status === "ambiguous") {
         // Merchant reviews candidate and approves the correct target
-        resolvePayment(p.id, targetOrder.orderId, 1.0);
+        await resolvePayment(p.id, targetOrder.orderId, 1.0);
         resolvedViaMerchantApproval++;
         correctResolutions++;
         totalResolvedValuePaise += p.amount;
@@ -269,7 +258,7 @@ async function runBenchmark(): Promise<BenchmarkResult> {
       resolved_via_merchant_approval: resolvedViaMerchantApproval,
       manual_review: manualReviewCount,
     },
-    note: "Evaluated on 100 synthetic payments across 130 multi-collision orders with honest 12% unhelpful customer reply noise rate.",
+    note: "Evaluated on 100 synthetic payments across 130 multi-collision orders with honest 12% unhelpful customer reply noise rate on Supabase Postgres.",
   };
 
   return result;
@@ -283,4 +272,5 @@ async function main() {
   console.log(JSON.stringify(res, null, 2));
   console.log(`\nResults written to ${outputPath}`);
 }
+
 main().catch(console.error);

@@ -8,25 +8,26 @@ import {
 } from "./repo";
 import { getBestCandidate, addEvidenceAndRecompute } from "./scorer";
 
-export function approvePayment(paymentId: string, orderId?: string) {
-  const payment = getPaymentById(paymentId);
+export async function approvePayment(paymentId: string, orderId?: string) {
+  const payment = await getPaymentById(paymentId);
   if (!payment) {
     throw new Error(`Payment ${paymentId} not found`);
   }
 
-  const targetOrderId = orderId ?? getBestCandidate(paymentId)?.candidate_order_id;
+  const bestCandidate = await getBestCandidate(paymentId);
+  const targetOrderId = orderId ?? bestCandidate?.candidate_order_id;
   if (!targetOrderId) {
     throw new Error("No candidate order specified to approve");
   }
 
-  const order = getOrderById(targetOrderId);
+  const order = await getOrderById(targetOrderId);
   if (!order) {
     throw new Error(`Order ${targetOrderId} not found`);
   }
 
-  resolvePayment(paymentId, targetOrderId, 1.0);
+  await resolvePayment(paymentId, targetOrderId, 1.0);
 
-  addAudit({
+  await addAudit({
     payment_id: paymentId,
     action: "approved",
     actor: "merchant",
@@ -38,17 +39,17 @@ export function approvePayment(paymentId: string, orderId?: string) {
   return { status: "approved", paymentId, orderId: targetOrderId };
 }
 
-export function rejectPayment(paymentId: string, orderId: string) {
-  const payment = getPaymentById(paymentId);
+export async function rejectPayment(paymentId: string, orderId: string) {
+  const payment = await getPaymentById(paymentId);
   if (!payment) {
     throw new Error(`Payment ${paymentId} not found`);
   }
 
-  const order = getOrderById(orderId);
+  const order = await getOrderById(orderId);
   const orderName = order ? order.product_name : orderId;
 
   // Add strong negative evidence signal (-100%) so this candidate is ruled out
-  addEvidenceAndRecompute({
+  await addEvidenceAndRecompute({
     payment_id: paymentId,
     candidate_order_id: orderId,
     signal_type: "negative",
@@ -56,7 +57,7 @@ export function rejectPayment(paymentId: string, orderId: string) {
     detail: `Merchant marked "${orderName}" as incorrect match (-100%)`,
   });
 
-  addAudit({
+  await addAudit({
     payment_id: paymentId,
     action: "rejected",
     actor: "merchant",
@@ -64,18 +65,18 @@ export function rejectPayment(paymentId: string, orderId: string) {
   });
 
   // Re-check best candidate after rejection
-  const best = getBestCandidate(paymentId);
+  const best = await getBestCandidate(paymentId);
   if (!best || best.confidence <= 0) {
-    updatePaymentConfidence(paymentId, 0, "manual_review");
+    await updatePaymentConfidence(paymentId, 0, "manual_review");
   } else {
-    updatePaymentConfidence(paymentId, best.confidence, payment.status);
+    await updatePaymentConfidence(paymentId, best.confidence, payment.status);
   }
 
   return { status: "rejected", paymentId, orderId };
 }
 
-export function unlinkPaymentAction(paymentId: string) {
-  const payment = getPaymentById(paymentId);
+export async function unlinkPaymentAction(paymentId: string) {
+  const payment = await getPaymentById(paymentId);
   if (!payment) {
     throw new Error(`Payment ${paymentId} not found`);
   }
@@ -85,14 +86,14 @@ export function unlinkPaymentAction(paymentId: string) {
   }
 
   const prevOrderId = payment.resolved_order_id;
-  const order = getOrderById(prevOrderId);
+  const order = await getOrderById(prevOrderId);
   const orderName = order ? order.product_name : prevOrderId;
 
   // Unlink in DB (restores order to pending, clears payment resolution)
-  unlinkPayment(paymentId);
+  await unlinkPayment(paymentId);
 
   // Add negative evidence against the mistakenly linked candidate
-  addEvidenceAndRecompute({
+  await addEvidenceAndRecompute({
     payment_id: paymentId,
     candidate_order_id: prevOrderId,
     signal_type: "negative",
@@ -100,18 +101,18 @@ export function unlinkPaymentAction(paymentId: string) {
     detail: `Merchant unlinked previous match — marked "${orderName}" as wrong match`,
   });
 
-  addAudit({
+  await addAudit({
     payment_id: paymentId,
     action: "unlinked",
     actor: "merchant",
     detail: `Merchant unlinked match with "${orderName}" and returned payment to unresolved`,
   });
 
-  const best = getBestCandidate(paymentId);
+  const best = await getBestCandidate(paymentId);
   if (best && best.confidence > 0) {
-    updatePaymentConfidence(paymentId, best.confidence, "ambiguous");
+    await updatePaymentConfidence(paymentId, best.confidence, "ambiguous");
   } else {
-    updatePaymentConfidence(paymentId, 0, "unresolved");
+    await updatePaymentConfidence(paymentId, 0, "unresolved");
   }
 
   return { status: "unlinked", paymentId };

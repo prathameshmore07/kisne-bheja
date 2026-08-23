@@ -1,10 +1,13 @@
-import { getPaymentById, getOrderById, getChatForPayment } from "@/lib/repo";
+import {
+  getPaymentById,
+  getOrderById,
+  getChatForPayment,
+  getBatchResolutionInfoForPayment,
+} from "@/lib/repo";
 import { getAllCandidateScores } from "@/lib/scorer";
-import { getTimelineForPayment } from "@/lib/audit";
 import { formatRupees } from "@/lib/format";
 import LiveConfidence from "@/components/LiveConfidence";
 import SimulatedWhatsApp from "@/components/SimulatedWhatsApp";
-import LiveAuditTimeline from "@/components/LiveAuditTimeline";
 import Link from "next/link";
 import BrandWordmark from "@/components/BrandWordmark";
 import { notFound } from "next/navigation";
@@ -17,16 +20,16 @@ interface PageProps {
 
 export default async function PaymentDetailPage({ params }: PageProps) {
   const { paymentId } = await params;
-  const payment = getPaymentById(paymentId);
+  const payment = await getPaymentById(paymentId);
 
   if (!payment) {
     notFound();
   }
 
-  const resolvedOrder = payment.resolved_order_id ? getOrderById(payment.resolved_order_id) : undefined;
-  const candidateScores = getAllCandidateScores(paymentId);
-  const timeline = getTimelineForPayment(paymentId);
-  const initialChat = getChatForPayment(paymentId);
+  const resolvedOrder = payment.resolved_order_id ? await getOrderById(payment.resolved_order_id) : undefined;
+  const candidateScores = await getAllCandidateScores(paymentId);
+  const initialChat = await getChatForPayment(paymentId);
+  const batchResolution = await getBatchResolutionInfoForPayment(paymentId);
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
@@ -59,11 +62,19 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         </div>
 
         {resolvedOrder && (
-          <div className="mt-4 pt-4 border-t border-line/60 flex items-center justify-between text-sm font-body">
-            <span className="text-muted">Matched to:</span>
-            <span className="font-medium text-ink">
-              {resolvedOrder.product_name} ({formatRupees(resolvedOrder.amount)}) · {resolvedOrder.customer_name ?? "Customer"}
-            </span>
+          <div className="mt-4 pt-4 border-t border-line/60 flex flex-wrap items-center justify-between gap-3 text-sm font-body">
+            <div className="flex items-center gap-2">
+              <span className="text-muted">Matched to:</span>
+              <span className="font-medium text-ink">
+                {resolvedOrder.product_name} ({formatRupees(resolvedOrder.amount)}) · {resolvedOrder.customer_name ?? "Customer"}
+              </span>
+            </div>
+            <div className="text-xs font-mono px-2.5 py-1 rounded bg-green/10 text-green font-medium flex items-center gap-1.5 border border-green/20">
+              <svg className="w-3.5 h-3.5 text-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <span>Confirmed to customer · Ready to pack</span>
+            </div>
           </div>
         )}
       </section>
@@ -97,15 +108,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
             confidence: c.confidence,
             evidence: c.evidence,
           }))}
-        />
-      </section>
-
-      {/* Activity Timeline */}
-      <section className="pt-8 border-t border-line">
-        <LiveAuditTimeline
-          paymentId={payment.id}
-          initialTimeline={timeline}
-          paymentStatus={payment.status}
+          initialBatchResolution={batchResolution}
         />
       </section>
     </main>

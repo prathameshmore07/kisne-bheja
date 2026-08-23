@@ -21,8 +21,9 @@ export interface BatchAssignmentResult {
   }>;
 }
 
-export function resolveBatchesForPendingAmbiguity(): BatchAssignmentResult {
-  const unresolvedPayments = getAllPayments().filter(
+export async function resolveBatchesForPendingAmbiguity(): Promise<BatchAssignmentResult> {
+  const allPayments = await getAllPayments();
+  const unresolvedPayments = allPayments.filter(
     (p) => p.status === "unresolved" || p.status === "ambiguous"
   );
 
@@ -60,7 +61,7 @@ export function resolveBatchesForPendingAmbiguity(): BatchAssignmentResult {
     const allPairs: CandidatePair[] = [];
 
     for (const payment of payments) {
-      const candidates = getAllCandidateScores(payment.id);
+      const candidates = await getAllCandidateScores(payment.id);
       for (const cand of candidates) {
         if (cand.order && cand.order.status === "pending") {
           allPairs.push({
@@ -92,24 +93,24 @@ export function resolveBatchesForPendingAmbiguity(): BatchAssignmentResult {
         const finalConfidence = Math.min(1.0, pair.confidence + boost);
 
         // Append evidence entry to ledger
-        appendEvidence({
+        await appendEvidence({
           payment_id: pair.payment.id,
           candidate_order_id: pair.order_id,
           signal_type: "batch_assignment",
           signal_weight: boost,
-          detail: `Joint assignment: Mutually exclusive 1-to-1 matching among ${payments.length} simultaneous ₹${(amount / 100).toFixed(2)} payments`,
+          detail: `Resolved together: Matched 1-to-1 alongside another simultaneous ₹${(amount / 100).toFixed(2)} payment`,
           confidence_after: finalConfidence,
         });
 
         // Resolve in DB
-        resolvePayment(pair.payment.id, pair.order_id, finalConfidence);
+        await resolvePayment(pair.payment.id, pair.order_id, finalConfidence);
 
         // Add audit trail entry
-        addAudit({
+        await addAudit({
           payment_id: pair.payment.id,
           action: "batch_resolved",
           actor: "system",
-          detail: `Batch-resolved via joint assignment to "${pair.order_name}" (${Math.round(finalConfidence * 100)}% confidence)`,
+          detail: `Resolved together with another payment of the same amount to "${pair.order_name}" (${Math.round(finalConfidence * 100)}% confidence)`,
         });
 
         assignmentsMade.push({

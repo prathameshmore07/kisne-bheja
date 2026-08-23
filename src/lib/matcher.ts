@@ -5,11 +5,13 @@ import {
   resolvePayment,
   updatePaymentConfidence,
   addAudit,
+  getMerchantRules,
 } from "./repo";
 import {
   scoreAmountMatch,
   scoreTiming,
   scorePayerHistory,
+  scoreMerchantRule,
   scoreLinkMetadata,
   addEvidenceAndRecompute,
   getBestCandidate,
@@ -26,28 +28,32 @@ export interface MatchingResult {
   candidates: CandidateScore[];
 }
 
-export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string): MatchingResult {
-  const payment = getPaymentById(paymentId);
+export async function runMatchingEngine(
+  paymentId: string,
+  paymentLinkOrderId?: string
+): Promise<MatchingResult> {
+  const payment = await getPaymentById(paymentId);
   if (!payment) {
     throw new Error(`Payment with id ${paymentId} not found`);
   }
 
   // Fetch pending candidate orders that could plausibly match
-  const allPending = getCandidateOrders(payment.amount);
+  const allPending = await getCandidateOrders(payment.amount);
   const exactCandidates = allPending.filter((o) => o.amount === payment.amount);
-  
+
   let candidatePool: typeof allPending = [];
   if (exactCandidates.length > 0) {
     candidatePool = exactCandidates;
   } else {
     // Check if it could be a partial payment towards a larger order
-    const partialCandidates = getPendingOrders().filter((o) => o.amount > payment.amount);
+    const pendingOrders = await getPendingOrders();
+    const partialCandidates = pendingOrders.filter((o) => o.amount > payment.amount);
     candidatePool = partialCandidates;
   }
 
   if (candidatePool.length === 0) {
-    updatePaymentConfidence(payment.id, 0, "manual_review");
-    addAudit({
+    await updatePaymentConfidence(payment.id, 0, "manual_review");
+    await addAudit({
       payment_id: payment.id,
       action: "manual_review",
       actor: "system",
@@ -66,7 +72,7 @@ export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string
   for (const order of candidatePool) {
     const amt = scoreAmountMatch(payment.amount, order.amount, sameAmountCount);
     if (amt) {
-      addEvidenceAndRecompute({
+      await addEvidenceAndRecompute({
         payment_id: payment.id,
         candidate_order_id: order.id,
         signal_type: amt.signal_type,
@@ -77,7 +83,7 @@ export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string
 
     const timing = scoreTiming(payment.received_at, order.created_at);
     if (timing) {
-      addEvidenceAndRecompute({
+      await addEvidenceAndRecompute({
         payment_id: payment.id,
         candidate_order_id: order.id,
         signal_type: timing.signal_type,
@@ -86,9 +92,14 @@ export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string
       });
     }
 
-    const payer = scorePayerHistory(payment.payer_vpa_hash, order.customer_vpa_hash);
+    const payer = scorePayerHistory(
+      payment.payer_vpa_hash,
+      order.customer_vpa_hash,
+      { last4: payment.payer_card_last4, network: payment.payer_card_network },
+      { last4: order.customer_card_last4, network: order.customer_card_network }
+    );
     if (payer) {
-      addEvidenceAndRecompute({
+      await addEvidenceAndRecompute({
         payment_id: payment.id,
         candidate_order_id: order.id,
         signal_type: payer.signal_type,
@@ -97,10 +108,25 @@ export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string
       });
     }
 
+    // Evaluate custom merchant rules
+    const merchantRules = await getMerchantRules();
+    for (const rule of merchantRules) {
+      const ruleSignal = scoreMerchantRule(rule, order, payment);
+      if (ruleSignal) {
+        await addEvidenceAndRecompute({
+          payment_id: payment.id,
+          candidate_order_id: order.id,
+          signal_type: ruleSignal.signal_type,
+          signal_weight: ruleSignal.weight,
+          detail: ruleSignal.detail,
+        });
+      }
+    }
+
     if (paymentLinkOrderId && order.id === paymentLinkOrderId) {
       const link = scoreLinkMetadata(payment.razorpay_payment_link_id ?? "payment_link", order.id);
       if (link) {
-        addEvidenceAndRecompute({
+        await addEvidenceAndRecompute({
           payment_id: payment.id,
           candidate_order_id: order.id,
           signal_type: link.signal_type,
@@ -111,11 +137,11 @@ export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string
     }
   }
 
-  const best = getBestCandidate(payment.id);
-  const allCandidateScores = getAllCandidateScores(payment.id);
+  const best = await getBestCandidate(payment.id);
+  const allCandidateScores = await getAllCandidateScores(payment.id);
 
   if (!best) {
-    updatePaymentConfidence(payment.id, 0, "manual_review");
+    await updatePaymentConfidence(payment.id, 0, "manual_review");
     return {
       action: "manual_review",
       paymentId: payment.id,
@@ -127,24 +153,24 @@ export function runMatchingEngine(paymentId: string, paymentLinkOrderId?: string
   const action = determineAction(best.confidence);
 
   if (action === "auto_link") {
-    resolvePayment(payment.id, best.candidate_order_id, best.confidence);
-    addAudit({
+    await resolvePayment(payment.id, best.candidate_order_id, best.confidence);
+    await addAudit({
       payment_id: payment.id,
       action: "auto_resolved",
       actor: "system",
       detail: `Auto-linked payment ${payment.id} to order ${best.order?.product_name ?? best.candidate_order_id} with confidence ${(best.confidence * 100).toFixed(0)}%`,
     });
   } else if (action === "merchant_approval") {
-    updatePaymentConfidence(payment.id, best.confidence, "ambiguous");
-    addAudit({
+    await updatePaymentConfidence(payment.id, best.confidence, "ambiguous");
+    await addAudit({
       payment_id: payment.id,
       action: "evidence_added",
       actor: "system",
       detail: `Candidate ${best.order?.product_name ?? best.candidate_order_id} reached ${(best.confidence * 100).toFixed(0)}% confidence; routed for merchant review`,
     });
   } else {
-    updatePaymentConfidence(payment.id, best.confidence, "unresolved");
-    addAudit({
+    await updatePaymentConfidence(payment.id, best.confidence, "unresolved");
+    await addAudit({
       payment_id: payment.id,
       action: "clarification_sent",
       actor: "system",

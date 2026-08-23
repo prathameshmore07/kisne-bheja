@@ -1,49 +1,48 @@
 import { createOrder, createPayment, getPaymentById, getOrderById } from "./repo";
-import { hashVpa } from "./hash";
 import { runMatchingEngine } from "./matcher";
 import { runBatchResolution } from "./batchResolver";
+import { seedDatabase } from "./seed";
 
 async function main() {
+  await seedDatabase();
   console.log("=== Testing Joint Batch Assignment ===");
 
-  const now = Date.now();
-  const orderA = createOrder({
+  const orderA = await createOrder({
     product_name: "Batch Test Blue Kurta",
     amount: 49900,
     customer_name: "Priya",
   });
-  // Simulate orderB created 25 minutes earlier
-  const orderB = createOrder({
+  const orderB = await createOrder({
     product_name: "Batch Test Red Kurta",
     amount: 49900,
     customer_name: "Rahul",
   });
 
   // Two payments arrive without pre-known VPA hashes
-  const pay1 = createPayment({
+  const pay1 = await createPayment({
     amount: 49900,
     razorpay_payment_id: "pay_batch_1",
   });
-  runMatchingEngine(pay1.id);
+  await runMatchingEngine(pay1.id);
 
-  const pay2 = createPayment({
+  const pay2 = await createPayment({
     amount: 49900,
     razorpay_payment_id: "pay_batch_2",
   });
-  runMatchingEngine(pay2.id);
+  await runMatchingEngine(pay2.id);
 
   console.log("Before Batch Resolution:");
-  console.log("Payment 1 status:", getPaymentById(pay1.id)?.status, "confidence:", getPaymentById(pay1.id)?.confidence);
-  console.log("Payment 2 status:", getPaymentById(pay2.id)?.status, "confidence:", getPaymentById(pay2.id)?.confidence);
+  console.log("Payment 1 status:", (await getPaymentById(pay1.id))?.status, "confidence:", (await getPaymentById(pay1.id))?.confidence);
+  console.log("Payment 2 status:", (await getPaymentById(pay2.id))?.status, "confidence:", (await getPaymentById(pay2.id))?.confidence);
 
   // Run Joint Assignment Optimization
   console.log("\nRunning solveBipartiteAssignment & runBatchResolution()...");
-  const result = runBatchResolution();
+  const result = await runBatchResolution();
   console.log("Batch Resolution Result:", JSON.stringify(result, null, 2));
 
   console.log("\nAfter Batch Resolution:");
-  const resolvedPay1 = getPaymentById(pay1.id)!;
-  const resolvedPay2 = getPaymentById(pay2.id)!;
+  const resolvedPay1 = (await getPaymentById(pay1.id))!;
+  const resolvedPay2 = (await getPaymentById(pay2.id))!;
 
   console.log("Payment 1 resolved to:", resolvedPay1.resolved_order_id, "(Status:", resolvedPay1.status, "Confidence:", resolvedPay1.confidence, ")");
   console.log("Payment 2 resolved to:", resolvedPay2.resolved_order_id, "(Status:", resolvedPay2.status, "Confidence:", resolvedPay2.confidence, ")");

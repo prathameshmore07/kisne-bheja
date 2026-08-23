@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("x-razorpay-signature");
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    // Strict HMAC verification when secret is configured
-    if (secret && secret !== "xxxxxxxxxxxxxxxxxxxx") {
+    // Strict HMAC verification when secret is configured and not a placeholder
+    if (secret && !secret.startsWith("xxxx") && !secret.startsWith("your_")) {
       if (!signature || !verifySignature(rawBody, signature, secret)) {
         console.warn("Invalid Razorpay webhook signature");
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -70,26 +70,33 @@ export async function POST(req: NextRequest) {
       }
 
       // Idempotency check: acknowledge retry without duplicate rows
-      const existing = getPaymentByRazorpayId(razorpayPaymentId);
+      const existing = await getPaymentByRazorpayId(razorpayPaymentId);
       if (existing) {
         return NextResponse.json({ status: "already_processed", payment_id: existing.id });
       }
 
+      const method = paymentEntity.method ?? (paymentEntity.vpa ? "upi" : "upi");
+      const cardLast4 = paymentEntity.card?.last4 ?? undefined;
+      const cardNetwork = paymentEntity.card?.network ?? undefined;
+
       // Ingest payment
-      const payment = createPaymentFromWebhook({
+      const payment = await createPaymentFromWebhook({
         razorpay_payment_id: razorpayPaymentId,
         razorpay_payment_link_id: paymentLinkId ?? undefined,
         amount,
         payer_vpa_hash: payerVpaHash,
+        payment_method: method,
+        payer_card_last4: cardLast4,
+        payer_card_network: cardNetwork,
       });
 
       // Crash-isolated execution of matching engine & clarification & batch solver
       try {
-        runMatchingEngine(payment.id, paymentLinkOrderId);
+        await runMatchingEngine(payment.id, paymentLinkOrderId);
         await maybeSendClarification(payment.id);
-        resolveBatchesForPendingAmbiguity();
+        await resolveBatchesForPendingAmbiguity();
       } catch (err: any) {
-        addAudit({
+        await addAudit({
           payment_id: payment.id,
           action: "manual_review",
           actor: "system",
@@ -111,7 +118,7 @@ export async function POST(req: NextRequest) {
         payload.error?.description ??
         "Payment declined / failed";
 
-      addAudit({
+      await addAudit({
         payment_id: razorpayPaymentId,
         action: "payment_failed",
         actor: "system",

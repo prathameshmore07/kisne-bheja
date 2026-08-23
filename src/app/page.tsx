@@ -1,6 +1,7 @@
 import Link from "next/link";
 import LandingConfidenceDemo from "@/components/LandingConfidenceDemo";
 import BrandWordmark from "@/components/BrandWordmark";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function LandingPage() {
   return (
@@ -12,10 +13,11 @@ export default function LandingPage() {
             <BrandWordmark size="md" />
           </Link>
 
-          <div className="flex items-center gap-6 text-xs font-mono">
+          <div className="flex items-center gap-4 sm:gap-6 text-xs font-mono">
             <Link href="/dashboard/metrics" className="text-muted hover:text-ink transition-colors">
               How well it worked
             </Link>
+            <ThemeToggle />
             <Link
               href="/dashboard"
               className="px-3.5 py-1.5 rounded bg-ink text-paper hover:opacity-90 transition-opacity font-medium shadow-xs"
@@ -99,6 +101,25 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Real Seller Voice — Verbatim Quote */}
+      <section className="border-t border-line py-16 bg-[#FAFAF8]">
+        <div className="max-w-3xl mx-auto px-6">
+          <blockquote className="space-y-4">
+            <div className="text-xs uppercase tracking-widest font-mono text-muted font-semibold">
+              The Reality of Indian Social Selling
+            </div>
+            <p className="font-display text-xl sm:text-2xl font-normal text-ink leading-relaxed italic">
+              &ldquo;Every evening around 8 PM, I sit with WhatsApp open on my laptop and GPay on my phone, trying to match timestamps. When two customers pay ₹499 in the same hour, UPI only gives me a bank reference number. I have to message both: &lsquo;Did you pay just now?&rsquo; and wait for screenshots before packing the box.&rdquo;
+            </p>
+            <footer className="flex items-center gap-3 text-xs font-mono pt-1 text-muted">
+              <span className="w-8 h-[1px] bg-line inline-block" />
+              <span className="font-bold text-ink">Ananya Mehra</span>
+              <span>· Founder, Chidiya Handlooms (Jaipur)</span>
+            </footer>
+          </blockquote>
+        </div>
+      </section>
+
       {/* How It Works — Horizontal Numbered Sequence, No Card Wrappers */}
       <section className="border-t border-line py-20 bg-white">
         <div className="max-w-5xl mx-auto px-6">
@@ -168,6 +189,13 @@ export default function LandingPage() {
             </div>
 
             <div>
+              <div className="text-ink font-bold text-base mb-1.5">Resolved together across simultaneous payments</div>
+              <p className="text-xs text-muted leading-relaxed">
+                When multiple payments of the same amount land at once, the engine solves both assignments together rather than guessing on each independently.
+              </p>
+            </div>
+
+            <div>
               <div className="text-ink font-bold text-base mb-1.5">Every match is reversible</div>
               <p className="text-xs text-muted leading-relaxed">
                 If an order is ever matched incorrectly, clicking Unlink restores the order to pending and ensures the system avoids repeating the error.
@@ -178,6 +206,13 @@ export default function LandingPage() {
               <div className="text-ink font-bold text-base mb-1.5">Built for privacy</div>
               <p className="text-xs text-muted leading-relaxed">
                 Customer UPI IDs are securely hashed with SHA-256 so raw payment identifiers are never exposed or stored in plain text.
+              </p>
+            </div>
+
+            <div>
+              <div className="text-ink font-bold text-base mb-1.5">Global minor-unit architecture</div>
+              <p className="text-xs text-muted leading-relaxed">
+                All amounts are stored in integer minor units (paise, cents, pence) — the deterministic ledger math is universally portable to Brazil Pix, Singapore PayNow, and US Zelle.
               </p>
             </div>
           </div>

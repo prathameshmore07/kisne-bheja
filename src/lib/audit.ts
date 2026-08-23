@@ -5,7 +5,7 @@ import {
   getOrderById,
   addAudit,
 } from "./repo";
-import { AuditEntry, EvidenceEntry, ChatMessage, AuditAction, AuditActor } from "./types";
+import { AuditEntry, EvidenceEntry, ChatMessage } from "./types";
 
 export interface TimelineItem {
   id: string;
@@ -28,10 +28,10 @@ function formatTime(timestamp: number): string {
   return d.toISOString().substring(11, 23); // HH:mm:ss.sss
 }
 
-export function getTimelineForPayment(paymentId: string): TimelineItem[] {
-  const audits = getAuditForPayment(paymentId);
-  const evidence = getEvidenceForPayment(paymentId);
-  const chats = getChatForPayment(paymentId);
+export async function getTimelineForPayment(paymentId: string): Promise<TimelineItem[]> {
+  const audits = await getAuditForPayment(paymentId);
+  const evidence = await getEvidenceForPayment(paymentId);
+  const chats = await getChatForPayment(paymentId);
 
   const items: TimelineItem[] = [];
 
@@ -50,7 +50,7 @@ export function getTimelineForPayment(paymentId: string): TimelineItem[] {
   }
 
   for (const e of evidence) {
-    const order = getOrderById(e.candidate_order_id);
+    const order = await getOrderById(e.candidate_order_id);
     const prodName = order?.product_name ?? e.candidate_order_id;
     items.push({
       id: `evidence-${e.id}`,
@@ -92,8 +92,8 @@ export function getTimelineForPayment(paymentId: string): TimelineItem[] {
   });
 }
 
-export function formatTimelineForConsole(paymentId: string): string {
-  const timeline = getTimelineForPayment(paymentId);
+export async function formatTimelineForConsole(paymentId: string): Promise<string> {
+  const timeline = await getTimelineForPayment(paymentId);
   if (timeline.length === 0) {
     return "(No timeline events recorded)";
   }
@@ -106,10 +106,9 @@ export function formatTimelineForConsole(paymentId: string): string {
     .join("\n");
 }
 
-// Helpers for merchant audit logging
-export function logMerchantApproval(paymentId: string, orderId: string, merchantName = "merchant") {
-  const order = getOrderById(orderId);
-  addAudit({
+export async function logMerchantApproval(paymentId: string, orderId: string, merchantName = "merchant"): Promise<void> {
+  const order = await getOrderById(orderId);
+  await addAudit({
     payment_id: paymentId,
     action: "approved",
     actor: "merchant",
@@ -117,8 +116,8 @@ export function logMerchantApproval(paymentId: string, orderId: string, merchant
   });
 }
 
-export function logMerchantRejection(paymentId: string, reason?: string, merchantName = "merchant") {
-  addAudit({
+export async function logMerchantRejection(paymentId: string, reason?: string, merchantName = "merchant"): Promise<void> {
+  await addAudit({
     payment_id: paymentId,
     action: "rejected",
     actor: "merchant",
@@ -126,8 +125,8 @@ export function logMerchantRejection(paymentId: string, reason?: string, merchan
   });
 }
 
-export function logMerchantUnlink(paymentId: string, reason?: string, merchantName = "merchant") {
-  addAudit({
+export async function logMerchantUnlink(paymentId: string, reason?: string, merchantName = "merchant"): Promise<void> {
+  await addAudit({
     payment_id: paymentId,
     action: "unlinked",
     actor: "merchant",

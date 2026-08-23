@@ -1,13 +1,15 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-paper: #F6F5F1;
-  --color-ink: #1B1D22;
-  --color-muted: #6B6F76;
-  --color-line: #E4E2DC;
-  --color-amber: #DC9F3D;
-  --color-green: #227A56;
-  --color-red: #B4432F;
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-amber: var(--amber);
+  --color-green: var(--green);
+  --color-red: var(--red);
 
   --font-display: var(--font-space-grotesk), sans-serif;
   --font-body: var(--font-inter), sans-serif;
@@ -16,6 +18,7 @@
 
 :root {
   --paper: #F6F5F1;
+  --paper-hover: #ECEAE4;
   --ink: #1B1D22;
   --muted: #6B6F76;
   --line: #E4E2DC;
@@ -24,10 +27,142 @@
   --red: #B4432F;
 }
 
+/* Deliberate, High-Contrast Dark Mode Color System */
+html.dark {
+  /* Rich, warm obsidian background (not washed out, not pure black) */
+  --paper: #0D0E12;
+  --paper-hover: #1E212B;
+  /* High contrast crisp off-white for primary headlines & body */
+  --ink: #F9FAFB;
+  /* Stepped-up readable slate for secondary/muted text */
+  --muted: #9CA3AF;
+  /* Crisp, defined hairline dividers */
+  --line: #2B2F3D;
+  /* Luminous, punchy state colors tuned specifically for dark backdrops */
+  --amber: #FBBF24;
+  --green: #34D399;
+  --red: #F87171;
+}
+
+html.dark body {
+  background-color: #0D0E12;
+  color: #F9FAFB;
+}
+
+/* Card surfaces: distinctly stepped up from #0D0E12 background */
+html.dark .bg-white {
+  background-color: #171920 !important;
+  color: #F9FAFB;
+  border-color: #2B2F3D;
+}
+
+/* Sub-surfaces & wells */
+html.dark .bg-paper {
+  background-color: #12141A !important;
+}
+
+html.dark .bg-\[\#FAF9F5\],
+html.dark .bg-\[\#FAFAF8\] {
+  background-color: #111318 !important;
+}
+
+/* Consistent Theme-Aware Hover Utility */
+.payment-row-hover:hover {
+  background-color: var(--paper-hover) !important;
+}
+
+/* Borders */
+html.dark .border-line {
+  border-color: #2B2F3D !important;
+}
+
+html.dark .border-line\/60 {
+  border-color: rgba(43, 47, 61, 0.6) !important;
+}
+
+/* Typography contrast */
+html.dark .text-ink {
+  color: #F9FAFB !important;
+}
+
+html.dark .text-muted {
+  color: #9CA3AF !important;
+}
+
+/* Form inputs */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1A1D26 !important;
+  color: #F9FAFB !important;
+  border-color: #2B2F3D !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6B7280 !important;
+}
+
+/* High-contrast state accents */
+html.dark .text-green {
+  color: #34D399 !important;
+}
+
+html.dark .text-amber {
+  color: #FBBF24 !important;
+}
+
+html.dark .text-red {
+  color: #F87171 !important;
+}
+
+html.dark .bg-green\/10,
+html.dark .bg-green\/20 {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+  color: #34D399 !important;
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+
+html.dark .bg-amber\/10,
+html.dark .bg-amber\/20 {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+  color: #FBBF24 !important;
+  border-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+html.dark .bg-red\/10,
+html.dark .bg-red\/20 {
+  background-color: rgba(239, 68, 68, 0.16) !important;
+  color: #F87171 !important;
+  border-color: rgba(248, 113, 113, 0.3) !important;
+}
+
+/* Clean Button & Control Overrides for Dark Mode */
+html.dark button.bg-ink {
+  background-color: #202430;
+  color: #F9FAFB;
+  border: 1px solid #333A4C;
+}
+
+html.dark button.bg-ink:hover {
+  background-color: #272C3B;
+}
+
+html.dark button.bg-paper {
+  background-color: #151821;
+  color: #F9FAFB;
+  border: 1px solid #2B2F3D;
+}
+
+html.dark button.bg-paper:hover {
+  border-color: #4A5164;
+}
+
 body {
   background-color: var(--paper);
   color: var(--ink);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 @keyframes fadeIn {

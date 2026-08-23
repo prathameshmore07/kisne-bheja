@@ -22,12 +22,13 @@
     "test-failures": "tsx src/lib/test-failures.ts",
     "test-batch-resolver": "tsx src/lib/test-batch-resolver.ts",
     "test-batch": "tsx src/lib/test-batch.ts",
+    "test-new-features": "tsx src/lib/test-new-features.ts",
     "test-all": "npm run seed && npm run test-repo && npm run test-scorer && npm run test-matcher && npm run test-audit && npm run test-gemini && npm run test-clarification && npm run test-reply-interpret && npm run test-resolution",
-    "benchmark": "DATABASE_PATH=./benchmark.db tsx src/lib/benchmark.ts"
+    "benchmark": "tsx src/lib/benchmark.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "better-sqlite3": "^13.0.3",
+    "@supabase/supabase-js": "^2.112.3",
     "next": "16.3.2",
     "razorpay": "^2.9.8",
     "react": "19.2.8",
@@ -36,7 +37,6 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

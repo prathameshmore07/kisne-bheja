@@ -6,8 +6,10 @@ export function statusColor(status: string): string {
   switch (status) {
     case "resolved": return "var(--green)";
     case "manual_review": return "var(--red)";
-    case "ambiguous": return "var(--amber)";
-    default: return "var(--muted)";
+    case "ambiguous":
+    case "unresolved":
+    default:
+      return "var(--amber)";
   }
 }
 

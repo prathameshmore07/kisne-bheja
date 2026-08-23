@@ -30,7 +30,7 @@ const SIGNAL_LABELS: Record<string, string> = {
   conversation: "Customer confirmed it",
   negative: "Not this one",
   partial: "Paid less than the order",
-  batch_assignment: "Matched together with other payments",
+  batch_assignment: "Resolved together with another payment",
 };
 
 interface CandidateEvidenceCardProps {
@@ -91,7 +91,7 @@ export default function CandidateEvidenceCard({
               {candidate.product_name}
             </h3>
             {isBest && candidate.confidence >= 0.6 && (
-              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber/10 text-amber font-bold">
+              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber/10 text-amber border border-amber/20 font-bold">
                 Best match
               </span>
             )}
@@ -119,7 +119,7 @@ export default function CandidateEvidenceCard({
                 type="button"
                 onClick={onApprove}
                 disabled={busy}
-                className="text-xs font-mono px-2.5 py-1 rounded bg-[#227A56] text-white hover:bg-[#227A56]/90 disabled:opacity-50 cursor-pointer transition-colors"
+                className="text-xs font-mono px-2.5 py-1 rounded bg-[#227A56] dark:bg-[#10B981] dark:text-gray-950 dark:font-semibold text-white hover:opacity-90 disabled:opacity-50 cursor-pointer transition-colors shadow-xs"
               >
                 {busy ? "..." : "Confirm"}
               </button>
@@ -127,7 +127,7 @@ export default function CandidateEvidenceCard({
                 type="button"
                 onClick={onReject}
                 disabled={busy}
-                className="text-xs font-mono px-2.5 py-1 rounded border border-red text-red hover:bg-red/5 disabled:opacity-50 cursor-pointer transition-colors"
+                className="text-xs font-mono px-2.5 py-1 rounded border border-red text-red hover:bg-red/10 disabled:opacity-50 cursor-pointer transition-colors"
               >
                 {busy ? "..." : "Not this one"}
               </button>

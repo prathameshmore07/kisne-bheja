@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import db from "@/lib/db";
+import { getSupabaseServer } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,9 @@ export async function GET() {
   };
 
   try {
-    db.prepare("SELECT 1").get();
-    checks.database = true;
+    const supabase = getSupabaseServer();
+    const { error } = await supabase.from("orders").select("id").limit(1);
+    checks.database = !error;
   } catch {
     checks.database = false;
   }

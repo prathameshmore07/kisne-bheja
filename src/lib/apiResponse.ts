@@ -15,4 +15,6 @@ export function handleApiError(err: unknown) {
     return apiError(`Invalid request: ${msg}`, 400);
   }
   console.error("API error:", err);
+  const msg = err instanceof Error ? err.message : "Internal Server Error";
+  return apiError(msg, 500);
 }

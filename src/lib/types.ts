@@ -9,10 +9,12 @@ export type SignalType =
   | "conversation"
   | "negative"
   | "partial"
-  | "batch_assignment";
+  | "batch_assignment"
+  | "merchant_rule";
 export type AuditActor = "system" | "gemini" | "merchant";
 export type AuditAction =
   | "webhook_received"
+  | "payment_simulated"
   | "evidence_added"
   | "clarification_sent"
   | "reply_interpreted"
@@ -23,7 +25,8 @@ export type AuditAction =
   | "unlinked"
   | "manual_review"
   | "payment_failed"
-  | "batch_assignment";
+  | "batch_assignment"
+  | "order_expired";
 
 export interface Order {
   id: string;
@@ -31,7 +34,10 @@ export interface Order {
   amount: number; // paise
   customer_name: string | null;
   customer_vpa_hash: string | null;
+  customer_card_last4?: string | null;
+  customer_card_network?: string | null;
   status: OrderStatus;
+  expires_at?: number | null;
   created_at: number;
 }
 
@@ -41,9 +47,14 @@ export interface Payment {
   razorpay_payment_link_id: string | null;
   amount: number; // paise
   payer_vpa_hash: string | null;
+  payment_method?: "upi" | "card" | "netbanking" | "wallet";
+  payer_card_last4?: string | null;
+  payer_card_network?: string | null;
   status: PaymentStatus;
   resolved_order_id: string | null;
   confidence: number; // 0..1
+  is_velocity_spike?: boolean;
+  velocity_count?: number;
   received_at: number;
   resolved_at: number | null;
 }
@@ -74,4 +85,27 @@ export interface ChatMessage {
   sender: "merchant_system" | "customer";
   message: string;
   created_at: number;
+}
+
+export interface MerchantRule {
+  id: string;
+  rule_name: string;
+  condition_type: "customer_name" | "payer_vpa_hash" | "product_name" | "min_amount";
+  condition_value: string;
+  signal_weight: number;
+  detail: string;
+  is_active: boolean;
+  created_at: number;
+}
+
+export interface WeeklyComparison {
+  currentWeekTotal: number;
+  currentWeekAmbiguous: number;
+  currentWeekAmbiguousPct: number;
+  lastWeekTotal: number;
+  lastWeekAmbiguous: number;
+  lastWeekAmbiguousPct: number;
+  diffPct: number;
+  trend: "improved" | "declined" | "stable";
+  summaryText: string;
 }

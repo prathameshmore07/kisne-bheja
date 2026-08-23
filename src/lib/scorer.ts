@@ -10,7 +10,6 @@ import {
   getEvidenceForPayment,
   getOrderById,
   updatePaymentConfidence,
-  addAudit,
 } from "./repo";
 
 export interface ScorerSignal {
@@ -122,14 +121,13 @@ export function scoreTiming(
 }
 
 export function scorePayerHistory(
-  payerVpaHash: string | null | undefined,
-  customerVpaHash: string | null | undefined
+  payerVpaHash?: string | null,
+  customerVpaHash?: string | null,
+  payerCard?: { last4?: string | null; network?: string | null },
+  customerCard?: { last4?: string | null; network?: string | null }
 ): ScorerSignal | null {
-  if (!payerVpaHash || !customerVpaHash) {
-    return null;
-  }
-
-  if (payerVpaHash === customerVpaHash) {
+  // 1. Check UPI VPA match
+  if (payerVpaHash && customerVpaHash && payerVpaHash === customerVpaHash) {
     return {
       signal_type: "payer_history",
       weight: 0.35,
@@ -137,10 +135,49 @@ export function scorePayerHistory(
     };
   }
 
+  // 2. Check Card network + last4 match (for card payments where VPA is absent)
+  if (
+    payerCard?.last4 &&
+    customerCard?.last4 &&
+    payerCard.last4 === customerCard.last4
+  ) {
+    const net = payerCard.network ? `${payerCard.network.toUpperCase()} ` : "";
+    return {
+      signal_type: "payer_history",
+      weight: 0.35,
+      detail: `Card identity proxy matches customer record (${net}···· ${payerCard.last4})`,
+    };
+  }
+
+  // Absence of a match is not negative evidence against an order; first-time or unknown payers carry zero evidentiary weight
+  return null;
+}
+
+export function scoreMerchantRule(
+  rule: import("./types").MerchantRule,
+  order: import("./types").Order,
+  payment: import("./types").Payment
+): ScorerSignal | null {
+  if (!rule.is_active) return null;
+
+  let matches = false;
+  if (rule.condition_type === "customer_name" && order.customer_name) {
+    matches = order.customer_name.toLowerCase().includes(rule.condition_value.toLowerCase());
+  } else if (rule.condition_type === "payer_vpa_hash") {
+    matches = payment.payer_vpa_hash === rule.condition_value || order.customer_vpa_hash === rule.condition_value;
+  } else if (rule.condition_type === "product_name") {
+    matches = order.product_name.toLowerCase().includes(rule.condition_value.toLowerCase());
+  } else if (rule.condition_type === "min_amount") {
+    const minPaise = parseInt(rule.condition_value, 10);
+    matches = !isNaN(minPaise) && payment.amount >= minPaise;
+  }
+
+  if (!matches) return null;
+
   return {
-    signal_type: "negative",
-    weight: -0.2,
-    detail: "Payer VPA hash differs from customer record",
+    signal_type: "merchant_rule",
+    weight: rule.signal_weight,
+    detail: rule.detail || `Merchant custom rule: ${rule.rule_name}`,
   };
 }
 
@@ -169,14 +206,15 @@ export function scoreConversation(
 
 // ---------- CONFIDENCE LEDGER & RECOMPUTE ----------
 
-export function addEvidenceAndRecompute(input: {
+export async function addEvidenceAndRecompute(input: {
   payment_id: string;
   candidate_order_id: string;
   signal_type: SignalType;
   signal_weight: number;
   detail?: string;
-}): EvidenceEntry {
-  const existingEvidence = getEvidenceForPayment(input.payment_id).filter(
+}): Promise<EvidenceEntry> {
+  const allEvidence = await getEvidenceForPayment(input.payment_id);
+  const existingEvidence = allEvidence.filter(
     (e) => e.candidate_order_id === input.candidate_order_id
   );
   const currentSum = existingEvidence.reduce((sum, e) => sum + e.signal_weight, 0);
@@ -185,7 +223,7 @@ export function addEvidenceAndRecompute(input: {
     Math.min(1, Math.round((currentSum + input.signal_weight) * 1000) / 1000)
   );
 
-  const entry = appendEvidence({
+  const entry = await appendEvidence({
     payment_id: input.payment_id,
     candidate_order_id: input.candidate_order_id,
     signal_type: input.signal_type,
@@ -194,7 +232,7 @@ export function addEvidenceAndRecompute(input: {
     confidence_after: newConfidence,
   });
 
-  const best = getBestCandidate(input.payment_id);
+  const best = await getBestCandidate(input.payment_id);
   if (best) {
     const action = determineAction(best.confidence);
     let status: PaymentStatus = "unresolved";
@@ -205,14 +243,14 @@ export function addEvidenceAndRecompute(input: {
     } else {
       status = "unresolved";
     }
-    updatePaymentConfidence(input.payment_id, best.confidence, status);
+    await updatePaymentConfidence(input.payment_id, best.confidence, status);
   }
 
   return entry;
 }
 
-export function getAllCandidateScores(paymentId: string): CandidateScore[] {
-  const evidenceList = getEvidenceForPayment(paymentId);
+export async function getAllCandidateScores(paymentId: string): Promise<CandidateScore[]> {
+  const evidenceList = await getEvidenceForPayment(paymentId);
   const grouped = new Map<string, EvidenceEntry[]>();
 
   for (const ev of evidenceList) {
@@ -227,7 +265,7 @@ export function getAllCandidateScores(paymentId: string): CandidateScore[] {
   for (const [candidate_order_id, evs] of grouped.entries()) {
     const rawSum = evs.reduce((sum, e) => sum + e.signal_weight, 0);
     const confidence = Math.max(0, Math.min(1, Math.round(rawSum * 1000) / 1000));
-    const order = getOrderById(candidate_order_id);
+    const order = await getOrderById(candidate_order_id);
     scores.push({
       candidate_order_id,
       confidence,
@@ -239,8 +277,8 @@ export function getAllCandidateScores(paymentId: string): CandidateScore[] {
   return scores.sort((a, b) => b.confidence - a.confidence);
 }
 
-export function getBestCandidate(paymentId: string): CandidateScore | undefined {
-  const scores = getAllCandidateScores(paymentId);
+export async function getBestCandidate(paymentId: string): Promise<CandidateScore | undefined> {
+  const scores = await getAllCandidateScores(paymentId);
   return scores.length > 0 ? scores[0] : undefined;
 }
 

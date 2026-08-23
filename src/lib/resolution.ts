@@ -4,7 +4,7 @@ import {
   updatePaymentConfidence,
   addAudit,
 } from "./repo";
-import { getBestCandidate, determineAction } from "./scorer";
+import { getBestCandidate } from "./scorer";
 
 export type FinalizationOutcome = "auto_resolved" | "merchant_approval" | "manual_review";
 
@@ -12,11 +12,11 @@ export interface FinalizeOptions {
   afterClarification?: boolean;
 }
 
-export function finalizeResolution(
+export async function finalizeResolution(
   paymentId: string,
   options: FinalizeOptions = {}
-): FinalizationOutcome {
-  const payment = getPaymentById(paymentId);
+): Promise<FinalizationOutcome> {
+  const payment = await getPaymentById(paymentId);
   if (!payment) {
     throw new Error(`Payment ${paymentId} not found`);
   }
@@ -25,10 +25,10 @@ export function finalizeResolution(
     return "auto_resolved";
   }
 
-  const best = getBestCandidate(paymentId);
+  const best = await getBestCandidate(paymentId);
   if (!best) {
-    updatePaymentConfidence(payment.id, 0, "manual_review");
-    addAudit({
+    await updatePaymentConfidence(payment.id, 0, "manual_review");
+    await addAudit({
       payment_id: payment.id,
       action: "manual_review",
       actor: "system",
@@ -41,8 +41,8 @@ export function finalizeResolution(
   const approvalThreshold = parseFloat(process.env.CONFIDENCE_APPROVAL_THRESHOLD || "0.60");
 
   if (best.confidence >= autoThreshold) {
-    resolvePayment(payment.id, best.candidate_order_id, best.confidence);
-    addAudit({
+    await resolvePayment(payment.id, best.candidate_order_id, best.confidence);
+    await addAudit({
       payment_id: payment.id,
       action: "auto_resolved",
       actor: "system",
@@ -54,8 +54,8 @@ export function finalizeResolution(
   }
 
   if (best.confidence > approvalThreshold) {
-    updatePaymentConfidence(payment.id, best.confidence, "ambiguous");
-    addAudit({
+    await updatePaymentConfidence(payment.id, best.confidence, "ambiguous");
+    await addAudit({
       payment_id: payment.id,
       action: "evidence_added",
       actor: "system",
@@ -67,8 +67,8 @@ export function finalizeResolution(
   }
 
   if (options.afterClarification) {
-    updatePaymentConfidence(payment.id, best.confidence, "manual_review");
-    addAudit({
+    await updatePaymentConfidence(payment.id, best.confidence, "manual_review");
+    await addAudit({
       payment_id: payment.id,
       action: "manual_review",
       actor: "system",

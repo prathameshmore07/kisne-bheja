@@ -35,7 +35,7 @@ export default function BatchResolveButton({ unresolvedCount }: { unresolvedCoun
         type="button"
         onClick={handleBatchResolve}
         disabled={loading}
-        className="text-xs font-mono px-3 py-1.5 rounded bg-ink text-paper hover:opacity-90 disabled:opacity-50 cursor-pointer transition-all shadow-xs flex items-center gap-1.5"
+        className="text-xs font-mono px-3 py-1.5 rounded border border-line bg-paper text-ink hover:border-ink disabled:opacity-50 cursor-pointer transition-colors flex items-center gap-1.5"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-green" />
         <span>{loading ? "Matching payments..." : "Match multiple payments"}</span>

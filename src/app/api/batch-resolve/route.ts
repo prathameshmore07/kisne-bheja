@@ -3,7 +3,7 @@ import { runBatchResolution } from "@/lib/batchResolver";
 
 export async function POST(req: NextRequest) {
   try {
-    const result = runBatchResolution();
+    const result = await runBatchResolution();
     return NextResponse.json(result);
   } catch (error: any) {
     console.error("Batch resolution error:", error);

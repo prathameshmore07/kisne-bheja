@@ -39,14 +39,28 @@ function getModel() {
 }
 
 export async function generateClarificationMessage(
-  candidates: Array<{ order_id: string; product_name: string; amount?: number }>
+  candidates: Array<{ order_id: string; product_name: string; amount?: number }>,
+  language: "hinglish" | "english" | "hindi" = "hinglish"
 ): Promise<{ message: string }> {
   const candidateNames = candidates.map((c) => c.product_name);
 
-  const fallbackMessage =
-    candidateNames.length > 0
-      ? `Hi! Just confirming — is this payment for the ${candidateNames.join(" or the ")}?`
-      : "Hi! We received your payment. Could you please confirm your order details?";
+  let fallbackMessage = "Hi! We received your payment. Could you please confirm your order details?";
+  if (language === "hindi") {
+    fallbackMessage =
+      candidateNames.length > 0
+        ? `नमस्ते! क्या आपका भुगतान ${candidateNames.join(" या ")} के लिए था?`
+        : "नमस्ते! क्या आप अपने ऑर्डर की पुष्टि कर सकते हैं?";
+  } else if (language === "english") {
+    fallbackMessage =
+      candidateNames.length > 0
+        ? `Hi! Just confirming — is this payment for the ${candidateNames.join(" or the ")}?`
+        : "Hi! We received your payment. Could you please confirm your order details?";
+  } else {
+    fallbackMessage =
+      candidateNames.length > 0
+        ? `Hi! Just checking, was your payment for the ${candidateNames.join(" or the ")}?`
+        : "Hi! We received your payment. Could you please confirm your order details?";
+  }
 
   try {
     const model = getModel();
@@ -54,10 +68,18 @@ export async function generateClarificationMessage(
       return { message: fallbackMessage };
     }
 
-    const prompt = `You are an AI assistant for a merchant. A customer sent a payment that could match multiple pending orders: ${JSON.stringify(
+    const langInstruction =
+      language === "hindi"
+        ? "Draft the message in polite, natural conversational Hindi (Devanagari script)."
+        : language === "english"
+        ? "Draft the message in polite, professional English."
+        : "Draft the message in natural, conversational Hinglish (Hindi phrasing written in Latin script).";
+
+    const prompt = `You are an AI assistant for an Indian merchant store. A customer sent a payment that could match multiple pending orders: ${JSON.stringify(
       candidates
     )}.
-Draft a polite, concise, single-sentence WhatsApp clarification message asking the customer to confirm which item they purchased.
+${langInstruction}
+Draft a concise, single-sentence WhatsApp clarification message asking the customer to confirm which item they purchased.
 Keep it natural, friendly, and under 25 words.
 
 Respond ONLY with valid JSON matching this schema:
@@ -69,8 +91,9 @@ Respond ONLY with valid JSON matching this schema:
     const raw = result.response.text();
     const parsed = extractJson(raw);
     return ClarificationSchema.parse(parsed);
-  } catch (err) {
-    console.warn("Gemini clarification error (using fallback):", err);
+  } catch (err: any) {
+    const msg = err?.message?.split("\n")[0] || String(err);
+    console.log(`[Gemini Clarification] ${msg} -> Using template.`);
     return { message: fallbackMessage };
   }
 }
@@ -83,26 +106,63 @@ export async function interpretCustomerReply(
   confidence_signal: number;
   reasoning: string;
 }> {
-  function runFallback(): {
+  function runFallback(reason: string): {
     matched_order_hint: string | null;
     confidence_signal: number;
     reasoning: string;
   } {
     const lower = customerMessage.toLowerCase().trim();
 
-    // 1. Exact full name match
+    if (candidates.length === 0) {
+      const res = {
+        matched_order_hint: null,
+        confidence_signal: 0,
+        reasoning: "Fallback matching failed: no candidate orders provided",
+      };
+      console.log(`[Deterministic Fallback] (${reason}) -> No candidate orders available`);
+      return res;
+    }
+
+    // 1. Exact full name or direct substring match
     for (const c of candidates) {
       const prodLower = c.product_name.toLowerCase();
-      if (lower.includes(prodLower)) {
-        return {
+      if (lower.includes(prodLower) || prodLower.includes(lower)) {
+        const res = {
           matched_order_hint: c.order_id,
           confidence_signal: 0.90,
-          reasoning: `Fallback exact keyword match (Gemini unavailable) on "${c.product_name}"`,
+          reasoning: `Deterministic fallback exact keyword match on "${c.product_name}"`,
         };
+        console.log(`[Deterministic Fallback] (${reason}) -> Matched "${c.product_name}" (${c.order_id}) with 90% confidence`);
+        return res;
       }
     }
 
-    // 2. Best token overlap
+    // 2. Color synonyms in Hindi / Hinglish
+    const colorSynonyms: Record<string, string[]> = {
+      blue: ["blue", "neela", "nila"],
+      red: ["red", "laal", "lal"],
+      green: ["green", "hara", "hari"],
+      black: ["black", "kaala", "kala"],
+    };
+
+    for (const c of candidates) {
+      const prodLower = c.product_name.toLowerCase();
+      for (const [enColor, synonyms] of Object.entries(colorSynonyms)) {
+        if (prodLower.includes(enColor)) {
+          if (synonyms.some((syn) => lower.includes(syn))) {
+            const res = {
+              matched_order_hint: c.order_id,
+              confidence_signal: 0.85,
+              reasoning: `Deterministic fallback color synonym match (${enColor}) on "${c.product_name}"`,
+            };
+            console.log(`[Deterministic Fallback] (${reason}) -> Matched synonym "${enColor}" for "${c.product_name}" (${c.order_id}) with 85% confidence`);
+            return res;
+          }
+        }
+      }
+    }
+
+    // 3. Best token overlap
     let bestCandidate: (typeof candidates)[0] | null = null;
     let maxMatches = 0;
 
@@ -117,24 +177,28 @@ export async function interpretCustomerReply(
     }
 
     if (bestCandidate && maxMatches > 0) {
-      return {
+      const res = {
         matched_order_hint: bestCandidate.order_id,
         confidence_signal: 0.85,
-        reasoning: `Fallback keyword match (Gemini unavailable) on "${bestCandidate.product_name}"`,
+        reasoning: `Deterministic fallback keyword overlap match on "${bestCandidate.product_name}"`,
       };
+      console.log(`[Deterministic Fallback] (${reason}) -> Matched keyword overlap for "${bestCandidate.product_name}" (${bestCandidate.order_id}) with 85% confidence`);
+      return res;
     }
 
-    return {
+    const res = {
       matched_order_hint: null,
       confidence_signal: 0,
-      reasoning: "Fallback keyword match (Gemini unavailable) found no match",
+      reasoning: "Deterministic fallback found no matching product keywords in customer reply",
     };
+    console.log(`[Deterministic Fallback] (${reason}) -> No keyword match for reply "${customerMessage}"`);
+    return res;
   }
 
   try {
     const model = getModel();
     if (!model) {
-      return runFallback();
+      return runFallback("Gemini API key not configured or empty");
     }
 
     const prompt = `You are an evidence interpretation engine. A customer was asked to clarify which order their payment belongs to.
@@ -155,10 +219,18 @@ Respond ONLY with valid JSON matching this schema:
     const result = await model.generateContent(prompt);
     const raw = result.response.text();
     const parsed = extractJson(raw);
-    return InterpretationSchema.parse(parsed);
-  } catch (err) {
-    console.warn("Gemini interpretation error (using fallback):", err);
-    return runFallback();
+    const validated = InterpretationSchema.parse(parsed);
+
+    console.log(
+      `[Gemini Call SUCCESS] Interpreted reply "${customerMessage}" -> hint: ${
+        validated.matched_order_hint ?? "none"
+      } (${Math.round(validated.confidence_signal * 100)}%). ${validated.reasoning}`
+    );
+    return validated;
+  } catch (err: any) {
+    const msg = err?.message?.split("\n")[0] || String(err);
+    console.log(`[Gemini Interpretation Notice] ${msg} -> Falling back to deterministic keyword matcher.`);
+    return runFallback(`Gemini API notice: ${msg}`);
   }
 }
 

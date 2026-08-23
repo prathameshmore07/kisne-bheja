@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { TimelineItem } from "@/lib/audit";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 interface LiveAuditTimelineProps {
   paymentId: string;
@@ -15,22 +16,66 @@ export default function LiveAuditTimeline({
 }: LiveAuditTimelineProps) {
   const [timeline, setTimeline] = useState<TimelineItem[]>(initialTimeline);
 
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/payments/${paymentId}`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.timeline) {
-          setTimeline(data.timeline);
-        }
-      } catch {
-        // silent
+  const fetchTimeline = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/payments/${paymentId}`, { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.timeline) {
+        setTimeline(data.timeline);
       }
-    }, 1000);
-
-    return () => clearInterval(interval);
+    } catch {
+      // silent
+    }
   }, [paymentId]);
+
+  // Instant sync on local payment actions
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      if (!e.detail || e.detail.paymentId === paymentId) {
+        fetchTimeline();
+      }
+    };
+    window.addEventListener("payment-updated", handleSync);
+    return () => {
+      window.removeEventListener("payment-updated", handleSync);
+    };
+  }, [paymentId, fetchTimeline]);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    let channel: any = null;
+    let interval: any = null;
+
+    if (supabase) {
+      channel = supabase
+        .channel(`audit-live-${paymentId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "audit_log",
+            filter: `payment_id=eq.${paymentId}`,
+          },
+          () => {
+            fetchTimeline();
+          }
+        )
+        .subscribe();
+    } else {
+      interval = setInterval(fetchTimeline, 2000);
+    }
+
+    return () => {
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [paymentId, fetchTimeline]);
 
   return (
     <section>

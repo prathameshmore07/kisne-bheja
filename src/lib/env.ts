@@ -36,10 +36,6 @@ export function validateEnv() {
     }
   }
 
-  if (!process.env.DATABASE_PATH) {
-    process.env.DATABASE_PATH = "./kisnebheja.db";
-  }
-
   const missing = REQUIRED.filter((key) => !process.env[key]);
   if (missing.length > 0) {
     console.warn(

@@ -1,11 +1,22 @@
-import { getAllPayments, getOrderById } from "@/lib/repo";
-import { getDashboardMetrics } from "@/lib/metrics";
-import { formatRupees, statusColor, statusLabel } from "@/lib/format";
+import {
+  getAllPayments,
+  getOrderById,
+  getBatchResolvedPaymentIds,
+  autoCancelExpiredOrders,
+  getCancelledOrders,
+} from "@/lib/repo";
+import { getDashboardMetrics, getWeeklyComparison } from "@/lib/metrics";
+import { formatRupees } from "@/lib/format";
 import BatchResolveButton from "@/components/BatchResolveButton";
 import Link from "next/link";
 import BrandWordmark from "@/components/BrandWordmark";
+import DashboardPaymentList from "@/components/DashboardPaymentList";
+import NewOrderModal from "@/components/NewOrderModal";
+import SimulatePaymentModal from "@/components/SimulatePaymentModal";
+import MerchantSettingsModal from "@/components/MerchantSettingsModal";
+import ThemeToggle from "@/components/ThemeToggle";
 
-export const dynamic = "force-dynamic"; // always read fresh from SQLite, no caching
+export const dynamic = "force-dynamic"; // always read fresh from Supabase, no caching
 
 function StatCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -17,24 +28,54 @@ function StatCell({ label, value, sub }: { label: string; value: string; sub?: s
   );
 }
 
-export default function DashboardPage() {
-  const payments = getAllPayments();
-  const metrics = getDashboardMetrics();
+export default async function DashboardPage() {
+  // Lazy background check for order expiry on load
+  await autoCancelExpiredOrders(7);
+
+  const payments = await getAllPayments();
+  const metrics = await getDashboardMetrics();
+  const weeklyReport = await getWeeklyComparison();
+  const cancelledOrders = await getCancelledOrders();
+  const batchResolvedIds = await getBatchResolvedPaymentIds();
+
+  // Pre-fetch resolved order details in parallel
+  const resolvedOrderIds = Array.from(
+    new Set(payments.map((p) => p.resolved_order_id).filter(Boolean) as string[])
+  );
+  const resolvedOrders = await Promise.all(resolvedOrderIds.map((id) => getOrderById(id)));
+  const orderMap: Record<string, string> = {};
+  for (const ord of resolvedOrders) {
+    if (ord) orderMap[ord.id] = ord.product_name;
+  }
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
+      {/* Top Header */}
       <header className="mb-10">
-        <Link href="/" className="inline-block mb-3 hover:opacity-85 transition-opacity">
-          <BrandWordmark size="md" />
-        </Link>
+        <div className="flex items-center justify-between gap-4 mb-3">
+          <Link href="/" className="inline-block hover:opacity-85 transition-opacity">
+            <BrandWordmark size="md" />
+          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <SimulatePaymentModal />
+            <NewOrderModal />
+            <MerchantSettingsModal />
+            <ThemeToggle />
+          </div>
+        </div>
+
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">
           Which order was each payment for?
         </h1>
-        <Link href="/dashboard/metrics" className="text-xs text-muted font-mono hover:text-ink underline mt-2 inline-block">
-          view how well it worked →
+        <Link
+          href="/dashboard/metrics"
+          className="text-xs text-muted font-mono hover:text-ink underline mt-2 inline-block"
+        >
+          See accuracy & test results →
         </Link>
       </header>
 
+      {/* Summary Metric Stats */}
       <section className="flex flex-wrap gap-8 border-y border-line py-8 mb-10">
         <StatCell
           label="Payments to check"
@@ -52,48 +93,20 @@ export default function DashboardPage() {
         />
       </section>
 
+      {/* Interactive Payment Ledger */}
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div className="text-xs uppercase tracking-wide text-muted font-mono">Recent payments</div>
           <BatchResolveButton unresolvedCount={metrics.unresolvedCount} />
         </div>
-        <div className="divide-y divide-line border border-line rounded-md overflow-hidden bg-white">
-          {payments.length === 0 && (
-            <div className="p-6 text-sm text-muted font-body">No payments received yet. When a customer pays, it will appear here.</div>
-          )}
-          {payments.map((p) => {
-            const order = p.resolved_order_id ? getOrderById(p.resolved_order_id) : undefined;
-            const confidencePct = Math.round(p.confidence * 100);
-            return (
-              <Link
-                key={p.id}
-                href={`/dashboard/${p.id}`}
-                className="flex items-center gap-4 px-5 py-4 hover:bg-paper hover:shadow-xs transition-all"
-              >
-                <div className="font-mono text-sm w-28 shrink-0 font-medium">{formatRupees(p.amount)}</div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="h-1.5 rounded-full bg-line overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${confidencePct}%`, backgroundColor: statusColor(p.status) }}
-                    />
-                  </div>
-                  <div className="text-xs text-muted font-mono mt-1">
-                    {confidencePct}% sure{order ? ` · ${order.product_name}` : ""}
-                  </div>
-                </div>
-
-                <div
-                  className="text-xs font-body px-2.5 py-1 rounded shrink-0 font-medium"
-                  style={{ color: statusColor(p.status), backgroundColor: `${statusColor(p.status)}1A` }}
-                >
-                  {statusLabel(p.status)}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <DashboardPaymentList
+          payments={payments}
+          orderMap={orderMap}
+          batchResolvedIds={Array.from(batchResolvedIds)}
+          weeklyReport={weeklyReport}
+          cancelledOrders={cancelledOrders}
+        />
       </section>
     </main>
   );

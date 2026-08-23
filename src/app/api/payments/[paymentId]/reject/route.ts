@@ -15,7 +15,7 @@ export async function POST(
     const { paymentId } = await props.params;
     const rawBody = await req.json().catch(() => ({}));
     const body = RejectSchema.parse(rawBody);
-    const result = rejectPayment(paymentId, body.order_id);
+    const result = await rejectPayment(paymentId, body.order_id);
     return apiSuccess(result);
   } catch (err) {
     return handleApiError(err);

@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { paymentId } = await props.params;
-    const result = unlinkPaymentAction(paymentId);
+    const result = await unlinkPaymentAction(paymentId);
     return apiSuccess(result);
   } catch (err) {
     return handleApiError(err);

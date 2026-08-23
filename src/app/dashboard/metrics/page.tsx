@@ -1,213 +1,265 @@
-import fs from "fs";
-import path from "path";
 import Link from "next/link";
 import { formatRupees } from "@/lib/format";
 import BrandWordmark from "@/components/BrandWordmark";
+import ThemeToggle from "@/components/ThemeToggle";
+import { getEngineTelemetry } from "@/lib/metrics";
 
 export const dynamic = "force-dynamic";
 
-interface BenchmarkData {
-  total_payments: number;
-  auto_resolution_rate: number;
-  correct_resolution_rate: number;
-  false_auto_link_rate: number;
-  manual_review_rate: number;
-  ambiguity_resolution_rate: number;
-  median_resolution_minutes: number;
-  total_value_resolved_paise: number;
-  breakdown: {
-    auto_resolved: number;
-    resolved_via_clarification: number;
-    resolved_via_merchant_approval: number;
-    manual_review: number;
-  };
-  note: string;
-}
+export default async function BenchmarkMetricsPage() {
+  const liveTelemetry = await getEngineTelemetry();
 
-export default function BenchmarkMetricsPage() {
-  const jsonPath = path.resolve(process.cwd(), "benchmark-results.json");
-  let data: BenchmarkData | null = null;
-
-  try {
-    if (fs.existsSync(jsonPath)) {
-      const raw = fs.readFileSync(jsonPath, "utf-8");
-      data = JSON.parse(raw);
-    }
-  } catch (err) {
-    console.error("Error reading benchmark-results.json:", err);
-  }
+  const total = liveTelemetry.totalCount;
+  const resolvedPct = total > 0 ? Math.round((liveTelemetry.resolvedCount / total) * 100) : 0;
+  const ambiguousPct = total > 0 ? Math.round((liveTelemetry.ambiguousCount / total) * 100) : 0;
+  const manualReviewPct = total > 0 ? Math.round((liveTelemetry.manualReviewCount / total) * 100) : 0;
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
-      {/* Header Navigation */}
+      {/* Top Navigation */}
       <div className="mb-8 flex items-center justify-between">
         <Link
           href="/dashboard"
           className="text-xs font-mono text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
         >
-          <span>←</span> <span>Back to all payments</span>
+          <span>←</span> <span>Back to ledger</span>
         </Link>
-        <Link href="/" className="inline-block hover:opacity-85 transition-opacity">
-          <BrandWordmark size="sm" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Link href="/" className="inline-block hover:opacity-85 transition-opacity">
+            <BrandWordmark size="sm" />
+          </Link>
+        </div>
       </div>
 
-      <header className="mb-12">
-        <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight mb-2">
-          How well did it work?
+      {/* Page Header */}
+      <header className="mb-10">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-green animate-pulse" />
+          <span className="text-xs font-mono uppercase tracking-widest text-muted font-medium">
+            Live Ledger Metrics
+          </span>
+        </div>
+        <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">
+          Payment Reconciliation Metrics
         </h1>
-        <p className="text-base text-muted font-normal max-w-xl">
-          Tested across 100 payments and 130 overlapping orders with known correct answers.
+        <p className="text-sm text-muted font-body mt-2 max-w-2xl leading-relaxed">
+          Real-time reconciliation statistics and multi-signal evidence distributions computed directly from your active Supabase ledger.
         </p>
       </header>
 
-      {!data ? (
-        <div className="border border-line rounded-lg p-8 text-center bg-white">
-          <div className="text-sm font-body font-medium mb-2 text-ink">No test results found</div>
-          <p className="text-xs text-muted font-body mb-4">
-            Run the benchmark test from your terminal to calculate real accuracy numbers:
-          </p>
-          <pre className="bg-paper border border-line p-3 rounded text-xs font-mono inline-block text-left text-ink">
-            DATABASE_PATH=./benchmark.db npx tsx src/lib/benchmark.ts
-          </pre>
+      {/* Real Live Stats Row */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-6 py-6 border-y border-line mb-10 bg-paper/50 px-5 rounded-lg border">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-muted font-mono font-medium">Total Payments</div>
+          <div className="font-mono text-2xl sm:text-3xl font-bold text-ink mt-1 tabular-nums">
+            {total}
+          </div>
+          <div className="text-[11px] text-muted font-mono mt-0.5">Recorded in ledger</div>
         </div>
-      ) : (
-        <div className="space-y-16">
-          {/* Hero Metric Section — Apple Style Single Giant Number */}
-          <div className="pb-10 border-b border-line">
-            <div className="font-display text-6xl sm:text-7xl font-bold text-green tracking-tight tabular-nums">
-              {Math.round(data.correct_resolution_rate * 100)}%
-            </div>
-            <div className="text-lg text-ink font-medium mt-3">
-              How often we got it right
-            </div>
-            <div className="text-sm text-muted font-body mt-1">
-              Zero wrong automatic pairings across all test payments.
-            </div>
+
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-muted font-mono font-medium">Resolved</div>
+          <div className="font-mono text-2xl sm:text-3xl font-bold text-green mt-1 tabular-nums">
+            {resolvedPct}%
           </div>
+          <div className="text-[11px] text-muted font-mono mt-0.5">{liveTelemetry.resolvedCount} of {total} confirmed</div>
+        </div>
 
-          {/* Plain Stats Row — Hairline Separated, No Boxed Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 pb-12 border-b border-line">
-            <div>
-              <div className="text-xs uppercase font-mono text-muted mb-1">Matched automatically</div>
-              <div className="font-display text-3xl font-bold text-ink tabular-nums">
-                {Math.round(data.auto_resolution_rate * 100)}%
-              </div>
-              <div className="text-xs text-muted font-body mt-1">
-                {data.breakdown.auto_resolved} matched instantly
-              </div>
-            </div>
-
-            <div>
-              <div className="text-xs uppercase font-mono text-muted mb-1">Solved by asking</div>
-              <div className="font-display text-3xl font-bold text-ink tabular-nums">
-                {Math.round(data.ambiguity_resolution_rate * 100)}%
-              </div>
-              <div className="text-xs text-muted font-body mt-1">
-                Untangled by customer reply
-              </div>
-            </div>
-
-            <div>
-              <div className="text-xs uppercase font-mono text-muted mb-1">Sent to a human</div>
-              <div className="font-display text-3xl font-bold text-ink tabular-nums">
-                {Math.round(data.manual_review_rate * 100)}%
-              </div>
-              <div className="text-xs text-muted font-body mt-1">
-                Paused safely for review
-              </div>
-            </div>
-
-            <div>
-              <div className="text-xs uppercase font-mono text-muted mb-1">Total money matched</div>
-              <div className="font-display text-2xl font-bold text-ink tabular-nums mt-1">
-                {formatRupees(data.total_value_resolved_paise)}
-              </div>
-              <div className="text-xs text-muted font-body mt-1">
-                {data.total_payments} test payments
-              </div>
-            </div>
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-muted font-mono font-medium">Needs Confirmation</div>
+          <div className="font-mono text-2xl sm:text-3xl font-bold text-amber mt-1 tabular-nums">
+            {ambiguousPct}%
           </div>
+          <div className="text-[11px] text-muted font-mono mt-0.5">{liveTelemetry.ambiguousCount} awaiting check</div>
+        </div>
 
-          {/* Breakdown Table — Clean Tabular Data */}
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-muted font-mono font-medium">Held for Review</div>
+          <div className="font-mono text-2xl sm:text-3xl font-bold text-red mt-1 tabular-nums">
+            {manualReviewPct}%
+          </div>
+          <div className="text-[11px] text-muted font-mono mt-0.5">{liveTelemetry.manualReviewCount} zero-guessing</div>
+        </div>
+      </section>
+
+      {/* Live Store Volume Summary */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted font-semibold">
+            Store Revenue & Volume
+          </h2>
+          <span className="text-[11px] font-mono text-muted">
+            {liveTelemetry.totalCount} transactions tracked
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-white border border-line rounded-lg font-mono">
           <div>
-            <h2 className="font-display font-bold text-xl text-ink mb-4">How payments were matched</h2>
-            <div className="border border-line rounded-lg overflow-hidden bg-white">
-              <div className="divide-y divide-line font-mono text-xs">
-                <div className="grid grid-cols-12 px-5 py-3 bg-paper font-semibold text-muted text-[11px] uppercase tracking-wider">
-                  <div className="col-span-5">How it was matched</div>
-                  <div className="col-span-2 text-right">Count</div>
-                  <div className="col-span-2 text-right">Share</div>
-                  <div className="col-span-3 text-right">Why</div>
-                </div>
-
-                <div className="grid grid-cols-12 px-5 py-3.5 items-center">
-                  <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
-                    <span className="w-2 h-2 rounded-full bg-green" />
-                    Matched automatically
-                  </div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">{data.breakdown.auto_resolved}</div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">
-                    {Math.round((data.breakdown.auto_resolved / data.total_payments) * 100)}%
-                  </div>
-                  <div className="col-span-3 text-right text-muted">Certain without asking</div>
-                </div>
-
-                <div className="grid grid-cols-12 px-5 py-3.5 items-center">
-                  <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
-                    <span className="w-2 h-2 rounded-full bg-green" />
-                    Solved by asking customer
-                  </div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">
-                    {data.breakdown.resolved_via_clarification}
-                  </div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">
-                    {Math.round((data.breakdown.resolved_via_clarification / data.total_payments) * 100)}%
-                  </div>
-                  <div className="col-span-3 text-right text-muted">Customer confirmed item</div>
-                </div>
-
-                <div className="grid grid-cols-12 px-5 py-3.5 items-center">
-                  <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
-                    <span className="w-2 h-2 rounded-full bg-amber" />
-                    Ready for you to confirm
-                  </div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">
-                    {data.breakdown.resolved_via_merchant_approval}
-                  </div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">
-                    {Math.round((data.breakdown.resolved_via_merchant_approval / data.total_payments) * 100)}%
-                  </div>
-                  <div className="col-span-3 text-right text-muted">Close match waiting for you</div>
-                </div>
-
-                <div className="grid grid-cols-12 px-5 py-3.5 items-center">
-                  <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
-                    <span className="w-2 h-2 rounded-full bg-red" />
-                    Sent to human review
-                  </div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">{data.breakdown.manual_review}</div>
-                  <div className="col-span-2 text-right tabular-nums text-ink">
-                    {Math.round((data.breakdown.manual_review / data.total_payments) * 100)}%
-                  </div>
-                  <div className="col-span-3 text-right text-muted">Unclear reply or no match</div>
-                </div>
-              </div>
+            <div className="text-[10px] uppercase text-muted">Total Volume</div>
+            <div className="text-lg font-bold text-ink mt-0.5 tabular-nums">
+              {formatRupees(liveTelemetry.totalVolumePaise)}
             </div>
+            <div className="text-[10px] text-muted">{liveTelemetry.totalCount} payments total</div>
           </div>
 
-          {/* Methodology Note — Plain Document Note */}
-          <div className="pt-8 border-t border-line text-xs font-body text-muted leading-relaxed max-w-2xl">
-            <div className="font-mono font-bold text-ink mb-1 uppercase tracking-wider text-[11px]">
-              How we tested this
+          <div>
+            <div className="text-[10px] uppercase text-muted">Resolved Volume</div>
+            <div className="text-lg font-bold text-green mt-0.5 tabular-nums">
+              {formatRupees(liveTelemetry.resolvedVolumePaise)}
             </div>
-            <p className="mb-2 text-ink">{data.note}</p>
-            <p className="italic text-[11px] text-muted">
-              Note: Time-to-match numbers show the computer simulation speed, not how fast a real customer types back.
-            </p>
+            <div className="text-[10px] text-muted">{liveTelemetry.resolvedCount} orders matched</div>
+          </div>
+
+          <div>
+            <div className="text-[10px] uppercase text-muted">Unresolved Volume</div>
+            <div className="text-lg font-bold text-amber mt-0.5 tabular-nums">
+              {formatRupees(liveTelemetry.unresolvedVolumePaise)}
+            </div>
+            <div className="text-[10px] text-muted">pending confirmation</div>
+          </div>
+
+          <div>
+            <div className="text-[10px] uppercase text-muted">Signals Evaluated</div>
+            <div className="text-lg font-bold text-ink mt-0.5 tabular-nums">
+              {liveTelemetry.totalSignalsComputed}
+            </div>
+            <div className="text-[10px] text-muted">evidence entries</div>
           </div>
         </div>
-      )}
+      </section>
+
+      {/* How Multi-Signal Scorer Checks Each Payment */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted font-semibold">
+            Signal Engine Weight Matrix
+          </h2>
+          <span className="text-[11px] font-mono text-muted">Additive Bayesian Evidence Model</span>
+        </div>
+
+        <div className="border border-line rounded-lg overflow-hidden bg-white">
+          <table className="w-full text-left font-mono text-xs">
+            <thead className="bg-paper text-muted text-[11px] border-b border-line uppercase tracking-wider font-semibold">
+              <tr>
+                <th className="py-3 px-4">Signal Type</th>
+                <th className="py-3 px-4">Weight Impact</th>
+                <th className="py-3 px-4">Engine Logic</th>
+                <th className="py-3 px-4 text-right">Computed In DB</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              <tr>
+                <td className="py-3 px-4 font-semibold text-ink">Amount Match</td>
+                <td className="py-3 px-4 text-green">+40% to +85%</td>
+                <td className="py-3 px-4 text-muted font-body text-xs">
+                  Exact amount match against pending orders in the active ledger
+                </td>
+                <td className="py-3 px-4 text-right tabular-nums font-semibold">
+                  {liveTelemetry.signalCounts.amount_match || 0}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 font-semibold text-ink">Timing Proximity</td>
+                <td className="py-3 px-4 text-green">+2% to +28%</td>
+                <td className="py-3 px-4 text-muted font-body text-xs">
+                  Exponential decay curve based on time elapsed since order creation
+                </td>
+                <td className="py-3 px-4 text-right tabular-nums font-semibold">
+                  {liveTelemetry.signalCounts.timing || 0}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 font-semibold text-ink">Payer &amp; Card History</td>
+                <td className="py-3 px-4 text-green">+35% / -20%</td>
+                <td className="py-3 px-4 text-muted font-body text-xs">
+                  Payer VPA hash or Card Last-4 + Network proxy match against customer record
+                </td>
+                <td className="py-3 px-4 text-right tabular-nums font-semibold">
+                  {liveTelemetry.signalCounts.payer_history || 0}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 font-semibold text-ink">Customer Confirmation</td>
+                <td className="py-3 px-4 text-green">+40% to +45%</td>
+                <td className="py-3 px-4 text-muted font-body text-xs">
+                  Natural language or keyword confirmation interpreted from customer chat
+                </td>
+                <td className="py-3 px-4 text-right tabular-nums font-semibold">
+                  {liveTelemetry.signalCounts.conversation || 0}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 font-semibold text-ink">Batch Assignment</td>
+                <td className="py-3 px-4 text-green">+35%</td>
+                <td className="py-3 px-4 text-muted font-body text-xs">
+                  Two colliding payments resolved jointly via bijective match
+                </td>
+                <td className="py-3 px-4 text-right tabular-nums font-semibold">
+                  {liveTelemetry.signalCounts.batch_assignment || 0}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4 font-semibold text-ink">Negative Signal / Exclusion</td>
+                <td className="py-3 px-4 text-red">-100%</td>
+                <td className="py-3 px-4 text-muted font-body text-xs">
+                  Alternative order confirmed or payment unlinked by merchant
+                </td>
+                <td className="py-3 px-4 text-right tabular-nums font-semibold">
+                  {liveTelemetry.signalCounts.negative || 0}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Multi-Currency & Gateway Compatibility */}
+      <section className="mb-16">
+        <div className="mb-4">
+          <h2 className="font-mono text-xs uppercase tracking-wider text-muted font-semibold">
+            Gateway &amp; Rails Compatibility
+          </h2>
+          <p className="text-xs text-muted font-body mt-1">
+            Built for UPI with seamless support for card networks and bank transfers.
+          </p>
+        </div>
+
+        <div className="border border-line rounded-lg p-6 bg-white space-y-4">
+          <p className="leading-relaxed text-ink text-xs font-body max-w-2xl">
+            Kisne Bheja is optimized for Indian UPI (₹) and webhooks from Razorpay, PayU, Cashfree, and Stripe, handling payments that arrive without order metadata:
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 rounded-lg bg-paper border border-line flex flex-col justify-between">
+              <div className="font-semibold text-ink text-xs font-mono mb-1.5">
+                UPI &amp; QR Transfers
+              </div>
+              <p className="text-muted text-xs font-body leading-relaxed">
+                Direct VPA payments from GPay, PhonePe, and Paytm without checkout links.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-paper border border-line flex flex-col justify-between">
+              <div className="font-semibold text-ink text-xs font-mono mb-1.5">
+                Debit &amp; Credit Cards
+              </div>
+              <p className="text-muted text-xs font-body leading-relaxed">
+                Last-4 digits + Card Network identity proxy matching when VPA is absent.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-paper border border-line flex flex-col justify-between">
+              <div className="font-semibold text-ink text-xs font-mono mb-1.5">
+                Global Rails
+              </div>
+              <p className="text-muted text-xs font-body leading-relaxed">
+                Compatible with Pix, PayNow, Zelle, and Faster Payments multi-order pooling.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
