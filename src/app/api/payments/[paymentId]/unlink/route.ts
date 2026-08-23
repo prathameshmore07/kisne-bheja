@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { unlinkPaymentAction } from "@/lib/merchantActions";
+import { apiSuccess, handleApiError } from "@/lib/apiResponse";
 
 export async function POST(
   _req: NextRequest,
@@ -8,8 +9,8 @@ export async function POST(
   try {
     const { paymentId } = await props.params;
     const result = unlinkPaymentAction(paymentId);
-    return NextResponse.json(result);
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? "error" }, { status: 400 });
+    return apiSuccess(result);
+  } catch (err) {
+    return handleApiError(err);
   }
 }

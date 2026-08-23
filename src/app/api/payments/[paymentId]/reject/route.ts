@@ -1,5 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 import { rejectPayment } from "@/lib/merchantActions";
+import { apiSuccess, handleApiError } from "@/lib/apiResponse";
+
+const RejectSchema = z.object({
+  order_id: z.string().min(1, "order_id is required"),
+});
 
 export async function POST(
   req: NextRequest,
@@ -7,13 +13,11 @@ export async function POST(
 ) {
   try {
     const { paymentId } = await props.params;
-    const body = await req.json().catch(() => ({}));
-    if (!body.order_id) {
-      return NextResponse.json({ error: "order_id is required" }, { status: 400 });
-    }
+    const rawBody = await req.json().catch(() => ({}));
+    const body = RejectSchema.parse(rawBody);
     const result = rejectPayment(paymentId, body.order_id);
-    return NextResponse.json(result);
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? "error" }, { status: 400 });
+    return apiSuccess(result);
+  } catch (err) {
+    return handleApiError(err);
   }
 }

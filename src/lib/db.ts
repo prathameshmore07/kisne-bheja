@@ -1,3 +1,6 @@
+import { validateEnv } from "./env";
+validateEnv();
+
 import Database from "better-sqlite3";
 import path from "path";
 
@@ -62,6 +65,16 @@ CREATE TABLE IF NOT EXISTS simulated_chat (
   created_at INTEGER NOT NULL,
   FOREIGN KEY (payment_id) REFERENCES payments(id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_razorpay_id ON payments(razorpay_payment_id);
+CREATE INDEX IF NOT EXISTS idx_payments_amount ON payments(amount);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_amount ON orders(amount);
+CREATE INDEX IF NOT EXISTS idx_evidence_payment ON evidence_log(payment_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_candidate ON evidence_log(payment_id, candidate_order_id);
+CREATE INDEX IF NOT EXISTS idx_audit_payment ON audit_log(payment_id);
+CREATE INDEX IF NOT EXISTS idx_chat_payment ON simulated_chat(payment_id);
 `);
 
 export default db;

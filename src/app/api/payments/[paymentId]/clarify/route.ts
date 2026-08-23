@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { maybeSendClarification } from "@/lib/clarification";
+import { apiSuccess, handleApiError } from "@/lib/apiResponse";
 
 export async function POST(
   _req: NextRequest,
@@ -8,9 +9,8 @@ export async function POST(
   try {
     const { paymentId } = await props.params;
     const result = await maybeSendClarification(paymentId);
-    return NextResponse.json(result);
-  } catch (error: any) {
-    console.error("Clarify route error:", error);
-    return NextResponse.json({ error: error?.message ?? "Error" }, { status: 500 });
+    return apiSuccess(result);
+  } catch (error) {
+    return handleApiError(error);
   }
 }

@@ -1,6 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 import { getPaymentById } from "@/lib/repo";
 import { processCustomerReply } from "@/lib/reply";
+import { apiSuccess, apiError, handleApiError } from "@/lib/apiResponse";
+
+const ReplySchema = z.object({
+  message: z.string().min(1, "message is required"),
+});
 
 export async function POST(
   req: NextRequest,
@@ -10,19 +16,15 @@ export async function POST(
     const { paymentId } = await props.params;
     const payment = getPaymentById(paymentId);
     if (!payment) {
-      return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+      return apiError("Payment not found", 404);
     }
 
-    const body = await req.json();
-    const message = (body.message ?? "").trim();
-    if (!message) {
-      return NextResponse.json({ error: "message is required" }, { status: 400 });
-    }
+    const rawBody = await req.json().catch(() => ({}));
+    const body = ReplySchema.parse(rawBody);
 
-    const result = await processCustomerReply(paymentId, message);
-    return NextResponse.json({ status: "processed", ...result });
-  } catch (error: any) {
-    console.error("Process customer reply error:", error);
-    return NextResponse.json({ error: error?.message ?? "Error" }, { status: 500 });
+    const result = await processCustomerReply(paymentId, body.message.trim());
+    return apiSuccess({ status: "processed", ...result });
+  } catch (error) {
+    return handleApiError(error);
   }
 }

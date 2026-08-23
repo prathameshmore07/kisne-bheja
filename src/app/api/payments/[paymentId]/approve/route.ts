@@ -1,5 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { z } from "zod";
 import { approvePayment } from "@/lib/merchantActions";
+import { apiSuccess, handleApiError } from "@/lib/apiResponse";
+
+const ApproveSchema = z.object({ order_id: z.string().optional() });
 
 export async function POST(
   req: NextRequest,
@@ -7,10 +11,11 @@ export async function POST(
 ) {
   try {
     const { paymentId } = await props.params;
-    const body = await req.json().catch(() => ({}));
+    const rawBody = await req.json().catch(() => ({}));
+    const body = ApproveSchema.parse(rawBody);
     const result = approvePayment(paymentId, body.order_id);
-    return NextResponse.json(result);
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? "error" }, { status: 400 });
+    return apiSuccess(result);
+  } catch (err) {
+    return handleApiError(err);
   }
 }
