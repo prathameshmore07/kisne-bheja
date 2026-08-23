@@ -40,12 +40,11 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         </Link>
         <Link href="/" className="inline-block hover:opacity-85 transition-opacity">
           <Image
-            src="/brand/typography/kisne_bheja_solid_black.png"
+            src="/brand/typography/hero_typography.png"
             alt="kisne bheja"
             width={160}
-            height={38}
-            unoptimized
-            className="h-7 sm:h-8 w-auto object-contain"
+            height={90}
+            className="w-32 sm:w-36 h-auto object-contain -my-3"
           />
         </Link>
       </div>

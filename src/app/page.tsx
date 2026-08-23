@@ -7,16 +7,15 @@ export default function LandingPage() {
     <div className="min-h-screen bg-paper text-ink font-body selection:bg-ink selection:text-paper">
       {/* Navigation */}
       <nav className="border-b border-line bg-paper sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="hover:opacity-85 transition-opacity flex items-center">
             <Image
-              src="/brand/typography/kisne_bheja_solid_black.png"
+              src="/brand/typography/hero_typography.png"
               alt="kisne bheja"
-              width={200}
-              height={46}
+              width={240}
+              height={134}
               priority
-              unoptimized
-              className="h-8 sm:h-9 w-auto object-contain"
+              className="w-40 sm:w-48 h-auto object-contain -my-4"
             />
           </Link>
 
@@ -197,12 +196,11 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Image
-              src="/brand/typography/kisne_bheja_solid_black.png"
+              src="/brand/typography/hero_typography.png"
               alt="kisne bheja"
-              width={140}
-              height={32}
-              unoptimized
-              className="h-6 w-auto object-contain"
+              width={160}
+              height={90}
+              className="w-28 sm:w-32 h-auto object-contain -my-2"
             />
             <span className="text-muted">: UPI payment reconciliation</span>
           </div>
