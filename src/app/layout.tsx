@@ -10,12 +10,9 @@ export const metadata: Metadata = {
   title: "Kisne Bheja : UPI Order Matching",
   description: "Your payment arrived. We find the order it belongs to.",
   icons: {
-    icon: [
-      { url: "/brand/favicon/favicon.ico" },
-      { url: "/brand/favicon.ico" },
-      { url: "/favicon.ico" },
-    ],
-    apple: "/brand/favicon/apple-touch-icon.png",
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
   },
 };
 
