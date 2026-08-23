@@ -28,9 +28,9 @@ export default function DashboardPage() {
           <Image
             src="/brand/typography/hero_typography.png"
             alt="kisne bheja"
-            width={240}
-            height={56}
-            className="h-11 sm:h-12 w-auto object-contain"
+            width={200}
+            height={46}
+            className="h-9 sm:h-10 w-auto object-contain"
           />
         </Link>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">

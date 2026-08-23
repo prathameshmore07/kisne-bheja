@@ -12,10 +12,10 @@ export default function LandingPage() {
             <Image
               src="/brand/typography/hero_typography.png"
               alt="kisne bheja"
-              width={260}
-              height={60}
+              width={200}
+              height={46}
               priority
-              className="h-11 sm:h-13 w-auto object-contain"
+              className="h-9 sm:h-10 w-auto object-contain"
             />
           </Link>
 
