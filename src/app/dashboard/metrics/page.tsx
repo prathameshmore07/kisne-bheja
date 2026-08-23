@@ -52,9 +52,9 @@ export default function BenchmarkMetricsPage() {
           <Image
             src="/brand/typography/hero_typography.png"
             alt="kisne bheja"
-            width={120}
-            height={28}
-            className="h-6 w-auto object-contain"
+            width={160}
+            height={38}
+            className="h-8 sm:h-9 w-auto object-contain"
           />
         </Link>
       </div>
