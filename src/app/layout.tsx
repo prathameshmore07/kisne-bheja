@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex-mono" });
 
 export const metadata: Metadata = {
-  title: "Kisne Bheja — Payment Identity Resolver",
-  description: "Payment tells you money arrived. Kisne Bheja tells you what it was for.",
+  title: "Kisne Bheja : UPI Order Matching",
+  description: "Your payment arrived. We find the order it belongs to.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
