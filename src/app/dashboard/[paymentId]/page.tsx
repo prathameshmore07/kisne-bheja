@@ -6,6 +6,7 @@ import LiveConfidence from "@/components/LiveConfidence";
 import SimulatedWhatsApp from "@/components/SimulatedWhatsApp";
 import LiveAuditTimeline from "@/components/LiveAuditTimeline";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +31,16 @@ export default async function PaymentDetailPage({ params }: PageProps) {
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
       {/* Header Navigation */}
-      <div className="mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <Link
           href="/dashboard"
           className="text-xs font-mono text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
         >
           <span>←</span> <span>Back to all payments</span>
+        </Link>
+        <Link href="/" className="inline-flex items-center gap-1.5 text-muted hover:text-ink transition-colors">
+          <Image src="/brand/logo/logo.png" alt="Kisne Bheja" width={18} height={18} className="rounded object-contain" />
+          <span className="text-[11px] font-mono uppercase tracking-wider">Kisne Bheja</span>
         </Link>
       </div>
 

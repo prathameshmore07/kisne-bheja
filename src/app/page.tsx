@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import LandingConfidenceDemo from "@/components/LandingConfidenceDemo";
 
 export default function LandingPage() {
@@ -7,9 +8,15 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="border-b border-line bg-paper sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="font-display text-base font-bold tracking-tight text-ink flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-ink" />
-            Kisne Bheja
+          <Link href="/" className="font-display text-base font-bold tracking-tight text-ink flex items-center gap-2.5">
+            <Image
+              src="/brand/logo/logo.png"
+              alt="Kisne Bheja Logo"
+              width={26}
+              height={26}
+              className="rounded object-contain"
+            />
+            <span>Kisne Bheja</span>
           </Link>
 
           <div className="flex items-center gap-6 text-xs font-mono">
@@ -27,9 +34,20 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="max-w-5xl mx-auto px-6 pt-20 pb-24">
+      <section className="max-w-5xl mx-auto px-6 pt-16 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 space-y-6">
+            <div className="mb-1">
+              <Image
+                src="/brand/typography/hero_typography.png"
+                alt="Kisne Bheja Typography"
+                width={360}
+                height={80}
+                priority
+                className="h-10 sm:h-12 w-auto object-contain"
+              />
+            </div>
+
             <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight text-ink leading-[1.08]">
               Your payment arrived. <br />
               We find the order it belongs to.
@@ -187,7 +205,14 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-line py-12 font-mono text-xs text-muted">
         <div className="max-w-5xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/brand/logo/logo.png"
+              alt="Kisne Bheja"
+              width={18}
+              height={18}
+              className="rounded object-contain"
+            />
             <span className="font-display font-bold text-ink">Kisne Bheja</span> : UPI payment reconciliation
           </div>
           <div className="flex items-center gap-6">

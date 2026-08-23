@@ -3,6 +3,7 @@ import { getDashboardMetrics } from "@/lib/metrics";
 import { formatRupees, statusColor, statusLabel } from "@/lib/format";
 import BatchResolveButton from "@/components/BatchResolveButton";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic"; // always read fresh from SQLite, no caching
 
@@ -23,6 +24,16 @@ export default function DashboardPage() {
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
       <header className="mb-10">
+        <Link href="/" className="inline-flex items-center gap-2 mb-3 text-ink hover:opacity-80 transition-opacity">
+          <Image
+            src="/brand/logo/logo.png"
+            alt="Kisne Bheja"
+            width={24}
+            height={24}
+            className="rounded object-contain"
+          />
+          <span className="text-xs font-mono font-medium text-muted uppercase tracking-wider">Kisne Bheja</span>
+        </Link>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">
           Which order was each payment for?
         </h1>
