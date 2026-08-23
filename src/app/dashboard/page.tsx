@@ -24,20 +24,13 @@ export default function DashboardPage() {
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
       <header className="mb-10">
-        <Link href="/" className="inline-flex items-center gap-2.5 mb-4 hover:opacity-85 transition-opacity">
-          <Image
-            src="/brand/logo/logo.png"
-            alt="Kisne Bheja Icon"
-            width={24}
-            height={24}
-            className="h-6 w-auto object-contain"
-          />
+        <Link href="/" className="inline-block mb-4 hover:opacity-85 transition-opacity">
           <Image
             src="/brand/typography/hero_typography.png"
-            alt="Kisne Bheja"
-            width={130}
-            height={32}
-            className="h-6 w-auto object-contain"
+            alt="kisne bheja"
+            width={160}
+            height={36}
+            className="h-8 w-auto object-contain"
           />
         </Link>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">

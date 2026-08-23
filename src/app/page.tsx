@@ -8,21 +8,14 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="border-b border-line bg-paper sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
-            <Image
-              src="/brand/logo/logo.png"
-              alt="Kisne Bheja Icon"
-              width={24}
-              height={24}
-              className="h-6 w-auto object-contain"
-            />
+          <Link href="/" className="hover:opacity-85 transition-opacity flex items-center">
             <Image
               src="/brand/typography/hero_typography.png"
-              alt="Kisne Bheja"
-              width={140}
-              height={36}
+              alt="kisne bheja"
+              width={170}
+              height={40}
               priority
-              className="h-6 sm:h-7 w-auto object-contain"
+              className="h-8 sm:h-9 w-auto object-contain"
             />
           </Link>
 
@@ -201,15 +194,15 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-line py-12 font-mono text-xs text-muted">
         <div className="max-w-5xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <Image
-              src="/brand/logo/logo.png"
-              alt="Kisne Bheja"
-              width={18}
-              height={18}
-              className="rounded object-contain"
+              src="/brand/typography/hero_typography.png"
+              alt="kisne bheja"
+              width={100}
+              height={24}
+              className="h-5 w-auto object-contain"
             />
-            <span className="font-display font-bold text-ink">Kisne Bheja</span> : UPI payment reconciliation
+            <span className="text-muted">: UPI payment reconciliation</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="hover:text-ink transition-colors">
