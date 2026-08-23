@@ -24,15 +24,21 @@ export default function DashboardPage() {
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
       <header className="mb-10">
-        <Link href="/" className="inline-flex items-center gap-2 mb-3 text-ink hover:opacity-80 transition-opacity">
+        <Link href="/" className="inline-flex items-center gap-2.5 mb-4 hover:opacity-85 transition-opacity">
           <Image
             src="/brand/logo/logo.png"
-            alt="Kisne Bheja"
+            alt="Kisne Bheja Icon"
             width={24}
             height={24}
-            className="rounded object-contain"
+            className="h-6 w-auto object-contain"
           />
-          <span className="text-xs font-mono font-medium text-muted uppercase tracking-wider">Kisne Bheja</span>
+          <Image
+            src="/brand/typography/hero_typography.png"
+            alt="Kisne Bheja"
+            width={130}
+            height={32}
+            className="h-6 w-auto object-contain"
+          />
         </Link>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">
           Which order was each payment for?

@@ -8,15 +8,22 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="border-b border-line bg-paper sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="font-display text-base font-bold tracking-tight text-ink flex items-center gap-2.5">
+          <Link href="/" className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
             <Image
               src="/brand/logo/logo.png"
-              alt="Kisne Bheja Logo"
-              width={26}
-              height={26}
-              className="rounded object-contain"
+              alt="Kisne Bheja Icon"
+              width={24}
+              height={24}
+              className="h-6 w-auto object-contain"
             />
-            <span>Kisne Bheja</span>
+            <Image
+              src="/brand/typography/hero_typography.png"
+              alt="Kisne Bheja"
+              width={140}
+              height={36}
+              priority
+              className="h-6 sm:h-7 w-auto object-contain"
+            />
           </Link>
 
           <div className="flex items-center gap-6 text-xs font-mono">
@@ -34,21 +41,10 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="max-w-5xl mx-auto px-6 pt-16 pb-24">
+      <section className="max-w-5xl mx-auto px-6 pt-20 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-7 space-y-6">
-            <div>
-              <Image
-                src="/brand/typography/hero_typography.png"
-                alt="Kisne Bheja"
-                width={500}
-                height={280}
-                priority
-                className="w-full max-w-xs sm:max-w-sm h-auto object-contain mb-2"
-              />
-            </div>
-
-            <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-ink leading-[1.12]">
+            <h1 className="font-display text-4xl sm:text-6xl font-bold tracking-tight text-ink leading-[1.08]">
               Your payment arrived. <br />
               We find the order it belongs to.
             </h1>

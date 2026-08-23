@@ -48,9 +48,9 @@ export default function BenchmarkMetricsPage() {
         >
           <span>←</span> <span>Back to all payments</span>
         </Link>
-        <Link href="/" className="inline-flex items-center gap-1.5 text-muted hover:text-ink transition-colors">
-          <Image src="/brand/logo/logo.png" alt="Kisne Bheja" width={18} height={18} className="rounded object-contain" />
-          <span className="text-[11px] font-mono uppercase tracking-wider">Kisne Bheja</span>
+        <Link href="/" className="inline-flex items-center gap-2 hover:opacity-85 transition-opacity">
+          <Image src="/brand/logo/logo.png" alt="Kisne Bheja" width={18} height={18} className="h-4.5 w-auto object-contain" />
+          <Image src="/brand/typography/hero_typography.png" alt="Kisne Bheja" width={95} height={24} className="h-4.5 w-auto object-contain" />
         </Link>
       </div>
 
