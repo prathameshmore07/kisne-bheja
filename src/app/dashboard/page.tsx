@@ -26,12 +26,12 @@ export default function DashboardPage() {
       <header className="mb-10">
         <Link href="/" className="inline-block mb-4 hover:opacity-85 transition-opacity">
           <Image
-            src="/brand/typography/wordmark_bold.png"
+            src="/brand/typography/kisne_bheja_solid_black.png"
             alt="kisne bheja"
             width={200}
             height={46}
             unoptimized
-            className="h-9 sm:h-10 w-auto object-contain"
+            className="h-8 sm:h-9 w-auto object-contain"
           />
         </Link>
         <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">
