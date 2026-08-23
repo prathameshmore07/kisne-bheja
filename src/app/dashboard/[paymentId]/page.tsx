@@ -6,7 +6,7 @@ import LiveConfidence from "@/components/LiveConfidence";
 import SimulatedWhatsApp from "@/components/SimulatedWhatsApp";
 import LiveAuditTimeline from "@/components/LiveAuditTimeline";
 import Link from "next/link";
-import Image from "next/image";
+import BrandWordmark from "@/components/BrandWordmark";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -39,13 +39,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
           <span>←</span> <span>Back to all payments</span>
         </Link>
         <Link href="/" className="inline-block hover:opacity-85 transition-opacity">
-          <Image
-            src="/brand/typography/hero_typography.png"
-            alt="kisne bheja"
-            width={160}
-            height={90}
-            className="w-32 sm:w-36 h-auto object-contain -my-3"
-          />
+          <BrandWordmark size="sm" />
         </Link>
       </div>
 

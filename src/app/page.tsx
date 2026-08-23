@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import LandingConfidenceDemo from "@/components/LandingConfidenceDemo";
+import BrandWordmark from "@/components/BrandWordmark";
 
 export default function LandingPage() {
   return (
@@ -9,14 +9,7 @@ export default function LandingPage() {
       <nav className="border-b border-line bg-paper sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="hover:opacity-85 transition-opacity flex items-center">
-            <Image
-              src="/brand/typography/hero_typography.png"
-              alt="kisne bheja"
-              width={240}
-              height={134}
-              priority
-              className="w-40 sm:w-48 h-auto object-contain -my-4"
-            />
+            <BrandWordmark size="md" />
           </Link>
 
           <div className="flex items-center gap-6 text-xs font-mono">
@@ -195,13 +188,7 @@ export default function LandingPage() {
       <footer className="border-t border-line py-12 font-mono text-xs text-muted">
         <div className="max-w-5xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Image
-              src="/brand/typography/hero_typography.png"
-              alt="kisne bheja"
-              width={160}
-              height={90}
-              className="w-28 sm:w-32 h-auto object-contain -my-2"
-            />
+            <BrandWordmark size="sm" />
             <span className="text-muted">: UPI payment reconciliation</span>
           </div>
           <div className="flex items-center gap-6">
