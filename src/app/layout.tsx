@@ -9,6 +9,14 @@ const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], var
 export const metadata: Metadata = {
   title: "Kisne Bheja : UPI Order Matching",
   description: "Your payment arrived. We find the order it belongs to.",
+  icons: {
+    icon: [
+      { url: "/brand/favicon/favicon.ico" },
+      { url: "/brand/favicon.ico" },
+      { url: "/favicon.ico" },
+    ],
+    apple: "/brand/favicon/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
