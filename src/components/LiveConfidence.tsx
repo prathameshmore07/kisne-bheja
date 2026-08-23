@@ -101,10 +101,10 @@ export default function LiveConfidence({
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <div className="text-xs uppercase tracking-wide text-muted font-mono">Evidence graph</div>
+        <div className="text-xs uppercase tracking-wide text-muted font-mono">Why we think this</div>
         <div className="flex items-center gap-3">
           <div
-            className="text-sm font-body px-3 py-1.5 rounded transition-colors duration-500 tabular-nums"
+            className="text-sm font-body px-3 py-1.5 rounded transition-colors duration-500 tabular-nums font-medium"
             style={{ color, backgroundColor: `${color}1A` }}
           >
             {statusLabel(payment.status as PaymentStatus)} · {Math.round(animatedTopPct)}%
@@ -115,14 +115,14 @@ export default function LiveConfidence({
               disabled={busyOrderId === "unlink"}
               className="text-xs font-mono underline text-red disabled:opacity-50 cursor-pointer"
             >
-              {busyOrderId === "unlink" ? "unlinking…" : "Wrong match? Unlink"}
+              {busyOrderId === "unlink" ? "Unlinking..." : "Wrong match? Unlink"}
             </button>
           )}
         </div>
       </div>
 
       {candidates.length === 0 && (
-        <div className="text-sm text-muted font-body">No candidate orders were found for this payment amount.</div>
+        <div className="text-sm text-muted font-body">No pending orders found with this exact amount.</div>
       )}
 
       <div className="space-y-6">

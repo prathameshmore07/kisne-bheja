@@ -22,14 +22,15 @@ export interface CandidateItem {
 }
 
 const SIGNAL_LABELS: Record<string, string> = {
-  amount_match: "Amount match",
-  timing: "Timing",
-  payer_history: "Payer history",
-  order_age: "Order age",
-  link_metadata: "Link metadata",
-  conversation: "Conversation",
-  negative: "Negative / Ruled out",
-  partial: "Partial payment",
+  amount_match: "Same amount",
+  timing: "Arrived around the same time",
+  payer_history: "You've paid before",
+  order_age: "Order is getting old",
+  link_metadata: "This link was made for this order",
+  conversation: "Customer confirmed it",
+  negative: "Not this one",
+  partial: "Paid less than the order",
+  batch_assignment: "Matched together with other payments",
 };
 
 interface CandidateEvidenceCardProps {
@@ -72,7 +73,7 @@ export default function CandidateEvidenceCard({
         setExplanation(data.explanation);
       }
     } catch {
-      setExplanation("Unable to generate live explanation.");
+      setExplanation("Could not load explanation right now.");
     } finally {
       setExplaining(false);
     }
@@ -91,7 +92,7 @@ export default function CandidateEvidenceCard({
             </h3>
             {isBest && candidate.confidence >= 0.6 && (
               <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-amber/10 text-amber font-bold">
-                Top Match
+                Best match
               </span>
             )}
           </div>
@@ -103,9 +104,15 @@ export default function CandidateEvidenceCard({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="font-display text-2xl font-bold tabular-nums text-ink">
-            {displayPct}%
+          <div className="text-right">
+            <div className="font-display text-2xl font-bold tabular-nums text-ink">
+              {displayPct}%
+            </div>
+            <div className="text-[9px] font-mono uppercase text-muted">
+              How sure we are
+            </div>
           </div>
+
           {showActions && (
             <div className="flex gap-2">
               <button
@@ -114,7 +121,7 @@ export default function CandidateEvidenceCard({
                 disabled={busy}
                 className="text-xs font-mono px-2.5 py-1 rounded bg-[#227A56] text-white hover:bg-[#227A56]/90 disabled:opacity-50 cursor-pointer shadow-2xs transition-colors"
               >
-                {busy ? "..." : "Approve"}
+                {busy ? "..." : "Confirm"}
               </button>
               <button
                 type="button"
@@ -122,7 +129,7 @@ export default function CandidateEvidenceCard({
                 disabled={busy}
                 className="text-xs font-mono px-2.5 py-1 rounded border border-red text-red hover:bg-red/5 disabled:opacity-50 cursor-pointer transition-colors"
               >
-                {busy ? "..." : "Not this"}
+                {busy ? "..." : "Not this one"}
               </button>
             </div>
           )}
@@ -156,7 +163,7 @@ export default function CandidateEvidenceCard({
                 {isPositive ? "+" : ""}
                 {Math.round(e.signal_weight * 100)}%
               </div>
-              <div className="w-28 shrink-0 text-[11px] text-muted font-mono uppercase tracking-wide">
+              <div className="w-36 shrink-0 text-[11px] text-muted font-mono uppercase tracking-wide">
                 {SIGNAL_LABELS[e.signal_type] ?? e.signal_type}
               </div>
               <div className="flex-1 text-ink text-xs">{e.detail}</div>
@@ -164,11 +171,11 @@ export default function CandidateEvidenceCard({
           );
         })}
         {candidate.evidence.length === 0 && (
-          <div className="text-xs text-muted font-body">No evidence recorded for this candidate.</div>
+          <div className="text-xs text-muted font-body">No checks recorded for this order yet.</div>
         )}
       </div>
 
-      {/* AI Explanation Accordion / Button */}
+      {/* Plain Language Explanation */}
       <div className="pt-3 border-t border-line/60">
         {!explanation && (
           <button
@@ -177,13 +184,13 @@ export default function CandidateEvidenceCard({
             disabled={explaining}
             className="text-xs font-mono text-muted hover:text-ink underline disabled:opacity-50 cursor-pointer transition-colors"
           >
-            {explaining ? "Asking Gemini..." : "Why this match?"}
+            {explaining ? "Checking reasons..." : "Why this order?"}
           </button>
         )}
         {explanation && (
           <div className="bg-paper border border-line rounded p-2.5 text-xs font-body text-ink italic animate-[fadeIn_0.4s_ease-out]">
             <span className="font-mono not-italic font-semibold text-[11px] uppercase text-muted block mb-0.5">
-              Gemini Reasoning
+              Why we think this
             </span>
             &ldquo;{explanation}&rdquo;
           </div>

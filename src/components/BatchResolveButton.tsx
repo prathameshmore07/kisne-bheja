@@ -15,13 +15,13 @@ export default function BatchResolveButton({ unresolvedCount }: { unresolvedCoun
       const res = await fetch("/api/batch-resolve", { method: "POST" });
       const data = await res.json();
       if (data.pairs_resolved?.length > 0) {
-        setResultMsg(`Untangled ${data.pairs_resolved.length} payment${data.pairs_resolved.length === 1 ? "" : "s"} simultaneously!`);
+        setResultMsg(`Matched ${data.pairs_resolved.length} payment${data.pairs_resolved.length === 1 ? "" : "s"} at once!`);
       } else {
-        setResultMsg("No multi-payment collision clusters ready for joint assignment.");
+        setResultMsg("No same-price payments waiting to be untangled right now.");
       }
       router.refresh();
     } catch {
-      setResultMsg("Batch resolution failed.");
+      setResultMsg("Could not match payments right now.");
     } finally {
       setLoading(false);
     }
@@ -38,7 +38,7 @@ export default function BatchResolveButton({ unresolvedCount }: { unresolvedCoun
         className="text-xs font-mono px-3 py-1.5 rounded bg-ink text-paper hover:opacity-90 disabled:opacity-50 cursor-pointer transition-all shadow-xs flex items-center gap-1.5"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-green" />
-        <span>{loading ? "Untangling joint assignments..." : "Run Joint Batch Assignment"}</span>
+        <span>{loading ? "Matching payments..." : "Match multiple payments"}</span>
       </button>
 
       {resultMsg && (

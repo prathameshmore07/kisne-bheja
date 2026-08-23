@@ -6,10 +6,10 @@ import { useAnimatedNumber } from "@/lib/useAnimatedNumber";
 type Step = 0 | 1 | 2 | 3 | 4;
 
 const TIMINGS: Record<Step, number> = {
-  0: 2000, // Initial state: 45% ambiguous
+  0: 2000, // Initial state: 45% not sure yet
   1: 1800, // Clarification question bubble appears
   2: 1800, // Customer reply bubble appears
-  3: 2500, // Confidence animates to 98%, status flips to Resolved
+  3: 2500, // Confidence animates to 98%, status flips to Payment matched
   4: 1000, // Reset transition
 };
 
@@ -38,7 +38,7 @@ export default function LandingConfidenceDemo() {
       <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
-          <span className="text-xs font-mono font-medium text-ink">Live Reconciliation Demo</span>
+          <span className="text-xs font-mono font-medium text-ink">How money gets matched</span>
         </div>
         <div
           className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded transition-colors duration-500"
@@ -47,7 +47,7 @@ export default function LandingConfidenceDemo() {
             backgroundColor: isResolved ? "rgba(34, 122, 86, 0.1)" : "rgba(220, 159, 61, 0.1)",
           }}
         >
-          {isResolved ? "Auto-Resolved" : "Ambiguous (2 collisions)"} · {displayPct}%
+          {isResolved ? "Payment matched" : "We're not sure yet"} · {displayPct}%
         </div>
       </div>
 
@@ -55,7 +55,7 @@ export default function LandingConfidenceDemo() {
       <div className="bg-paper rounded-lg p-3 mb-4 border border-line/60">
         <div className="flex justify-between items-center text-xs font-mono text-muted mb-1">
           <span>PAYMENT RECEIVED</span>
-          <span>pay_sim_90412</span>
+          <span>pay_90412</span>
         </div>
         <div className="flex justify-between items-baseline">
           <span className="font-display text-2xl font-bold text-ink">₹499.00</span>
@@ -85,7 +85,7 @@ export default function LandingConfidenceDemo() {
           </div>
           <div className="text-right">
             <div className="font-display text-xl font-bold tabular-nums text-ink">{displayPct}%</div>
-            <div className="text-[9px] font-mono uppercase text-muted">Confidence</div>
+            <div className="text-[9px] font-mono uppercase text-muted">How sure we are</div>
           </div>
         </div>
 
@@ -103,42 +103,42 @@ export default function LandingConfidenceDemo() {
         {/* Evidence items */}
         <div className="space-y-1 font-mono text-[11px]">
           <div className="flex items-center justify-between text-muted">
-            <span className="text-ink">✓ Amount match (+45%)</span>
-            <span>2 colliding orders</span>
+            <span className="text-ink">✓ Same amount (+45%)</span>
+            <span>2 orders with same price</span>
           </div>
           <div className="flex items-center justify-between text-muted">
-            <span className="text-ink">✓ Timing fresh (+15%)</span>
-            <span>Received within 4m</span>
+            <span className="text-ink">✓ Arrived around same time (+15%)</span>
+            <span>Paid within 4 minutes</span>
           </div>
           {isResolved && (
             <div className="flex items-center justify-between text-green font-semibold animate-fadeIn">
-              <span>✓ Customer confirmation (+38%)</span>
-              <span>WhatsApp reply verified</span>
+              <span>✓ Customer confirmed it (+38%)</span>
+              <span>Confirmed in chat</span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Simulated Conversational WhatsApp Clarification */}
+      {/* Customer Conversation Section */}
       <div className="bg-paper rounded-lg p-3 border border-line/60 space-y-2">
         <div className="text-[10px] font-mono uppercase tracking-wider text-muted font-semibold mb-1">
-          Automated WhatsApp Clarification (Max 1 Ask)
+          One plain question when we are unsure
         </div>
 
         {showAIQuestion ? (
           <div className="bg-white border border-line rounded-lg rounded-tl-none p-2.5 text-xs text-ink animate-fadeIn shadow-2xs max-w-[90%]">
-            <div className="text-[10px] font-mono text-muted mb-0.5">Merchant System (AI drafted)</div>
-            Hi Priya! Just confirming — is your ₹499 payment for the <strong>Blue Kurta</strong> or the <strong>Red Kurta</strong>?
+            <div className="text-[10px] font-mono text-muted mb-0.5">Your store</div>
+            Hi Priya! Just checking, was your ₹499 payment for the <strong>Blue Kurta</strong> or the <strong>Red Kurta</strong>?
           </div>
         ) : (
-          <div className="text-xs text-muted italic font-mono py-1">
-            {step === 0 ? "Awaiting automated clarification trigger..." : "State resetting..."}
+          <div className="text-xs text-muted italic font-body py-1">
+            {step === 0 ? "Checking with the customer..." : "Starting over..."}
           </div>
         )}
 
         {showCustomerReply && (
           <div className="bg-[#227A56]/10 border border-[#227A56]/20 rounded-lg rounded-tr-none p-2.5 text-xs text-ink ml-auto max-w-[85%] animate-fadeIn">
-            <div className="text-[10px] font-mono text-green font-bold mb-0.5">Customer (WhatsApp)</div>
+            <div className="text-[10px] font-mono text-green font-bold mb-0.5">Customer</div>
             haan blue kurta wala
           </div>
         )}

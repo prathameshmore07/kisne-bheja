@@ -13,9 +13,9 @@ export function statusColor(status: string): string {
 
 export function statusLabel(status: string): string {
   switch (status) {
-    case "resolved": return "Resolved";
-    case "manual_review": return "Needs review";
-    case "ambiguous": return "Ambiguous";
-    default: return "Unresolved";
+    case "resolved": return "Payment matched";
+    case "manual_review": return "Needs your review";
+    case "ambiguous": return "We're not sure yet";
+    default: return "We're not sure yet";
   }
 }

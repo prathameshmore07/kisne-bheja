@@ -10,7 +10,7 @@ function StatCell({ label, value, sub }: { label: string; value: string; sub?: s
   return (
     <div className="flex-1 min-w-[160px]">
       <div className="text-xs uppercase tracking-wide text-muted font-body">{label}</div>
-      <div className="font-display text-3xl mt-1">{value}</div>
+      <div className="font-display text-3xl mt-1 text-ink">{value}</div>
       {sub && <div className="text-xs text-muted font-body mt-0.5">{sub}</div>}
     </div>
   );
@@ -24,37 +24,37 @@ export default function DashboardPage() {
     <main className="max-w-4xl mx-auto px-6 py-10">
       <header className="mb-8">
         <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">Kisne Bheja</div>
-        <h1 className="font-display text-2xl font-bold">Who sent this payment?</h1>
+        <h1 className="font-display text-2xl font-bold text-ink">Which order was each payment for?</h1>
         <Link href="/dashboard/metrics" className="text-xs text-muted font-mono hover:underline mt-1 inline-block">
-          view benchmark metrics →
+          view how well it worked →
         </Link>
       </header>
 
       <section className="flex flex-wrap gap-8 border-y border-line py-6 mb-8">
         <StatCell
-          label="Unresolved"
+          label="Payments to check"
           value={formatRupees(metrics.unresolvedValue)}
-          sub={`${metrics.unresolvedCount} payment${metrics.unresolvedCount === 1 ? "" : "s"}`}
+          sub={`${metrics.unresolvedCount} payment${metrics.unresolvedCount === 1 ? "" : "s"} waiting`}
         />
         <StatCell
-          label="Resolution rate"
+          label="Matched so far"
           value={`${(metrics.resolutionRate * 100).toFixed(0)}%`}
-          sub={`${metrics.resolvedCount}/${metrics.totalCount} resolved`}
+          sub={`${metrics.resolvedCount} of ${metrics.totalCount} matched`}
         />
         <StatCell
-          label="Median time to resolve"
+          label="Average time to match"
           value={metrics.medianResolutionMinutes !== null ? `${metrics.medianResolutionMinutes.toFixed(1)} min` : "—"}
         />
       </section>
 
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <div className="text-xs uppercase tracking-wide text-muted font-mono">Payments</div>
+          <div className="text-xs uppercase tracking-wide text-muted font-mono">Recent payments</div>
           <BatchResolveButton unresolvedCount={metrics.unresolvedCount} />
         </div>
         <div className="divide-y divide-line border border-line rounded-md overflow-hidden bg-white">
           {payments.length === 0 && (
-            <div className="p-6 text-sm text-muted font-body">No payments yet — trigger a test payment to see it here.</div>
+            <div className="p-6 text-sm text-muted font-body">No payments received yet. When a customer pays, it will appear here.</div>
           )}
           {payments.map((p) => {
             const order = p.resolved_order_id ? getOrderById(p.resolved_order_id) : undefined;
@@ -75,7 +75,7 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div className="text-xs text-muted font-mono mt-1">
-                    {confidencePct}% confidence{order ? ` · ${order.product_name}` : ""}
+                    {confidencePct}% sure{order ? ` · ${order.product_name}` : ""}
                   </div>
                 </div>
 

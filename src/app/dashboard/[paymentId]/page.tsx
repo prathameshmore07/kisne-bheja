@@ -35,7 +35,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
           href="/dashboard"
           className="text-xs font-mono text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
         >
-          <span>←</span> <span>Back to Dashboard</span>
+          <span>←</span> <span>Back to all payments</span>
         </Link>
       </div>
 
@@ -43,12 +43,12 @@ export default async function PaymentDetailPage({ params }: PageProps) {
       <section className="bg-white border border-line rounded-lg p-6 mb-8 shadow-xs">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">Payment Details</div>
-            <h1 className="font-display text-3xl font-bold">{formatRupees(payment.amount)}</h1>
+            <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">Incoming payment</div>
+            <h1 className="font-display text-3xl font-bold text-ink">{formatRupees(payment.amount)}</h1>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted font-mono mt-2">
-              <span>ID: {payment.id.slice(0, 8)}...</span>
-              {payment.razorpay_payment_id && <span>Razorpay: {payment.razorpay_payment_id}</span>}
-              {payment.payer_vpa_hash && <span>VPA Hash: {payment.payer_vpa_hash}</span>}
+              <span>Payment ID: {payment.id.slice(0, 8)}...</span>
+              {payment.razorpay_payment_id && <span>Gateway ref: {payment.razorpay_payment_id}</span>}
+              {payment.payer_vpa_hash && <span>Payer ref: {payment.payer_vpa_hash}</span>}
               <span>Received: {new Date(payment.received_at).toLocaleTimeString("en-IN")}</span>
             </div>
           </div>
@@ -56,15 +56,25 @@ export default async function PaymentDetailPage({ params }: PageProps) {
 
         {resolvedOrder && (
           <div className="mt-4 pt-4 border-t border-line flex items-center justify-between text-xs font-body">
-            <span className="text-muted">Resolved to:</span>
+            <span className="text-muted">Matched to:</span>
             <span className="font-medium text-ink">
-              {resolvedOrder.product_name} ({formatRupees(resolvedOrder.amount)}) · {resolvedOrder.customer_name ?? "Unknown customer"}
+              {resolvedOrder.product_name} ({formatRupees(resolvedOrder.amount)}) · {resolvedOrder.customer_name ?? "Customer"}
             </span>
           </div>
         )}
       </section>
 
-      {/* Live Animated Evidence Graph */}
+      {/* Customer Conversation (Simulated WhatsApp) — Prominent Sequential Experience */}
+      <section className="mb-10">
+        <div className="text-xs uppercase tracking-wide text-muted font-mono mb-3">Customer conversation</div>
+        <SimulatedWhatsApp
+          paymentId={payment.id}
+          initialChat={initialChat}
+          paymentStatus={payment.status}
+        />
+      </section>
+
+      {/* Candidate Breakdown & Reasoning */}
       <section className="mb-10">
         <LiveConfidence
           paymentId={payment.id}
@@ -87,17 +97,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         />
       </section>
 
-      {/* Customer Conversation (Simulated WhatsApp) */}
-      <section className="mb-10">
-        <div className="text-xs uppercase tracking-wide text-muted font-mono mb-3">Customer conversation</div>
-        <SimulatedWhatsApp
-          paymentId={payment.id}
-          initialChat={initialChat}
-          paymentStatus={payment.status}
-        />
-      </section>
-
-      {/* Unified Audit & Ledger Timeline */}
+      {/* Activity Timeline */}
       <LiveAuditTimeline
         paymentId={payment.id}
         initialTimeline={timeline}

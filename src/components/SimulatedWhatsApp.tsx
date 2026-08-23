@@ -92,12 +92,12 @@ export default function SimulatedWhatsApp({
       {/* Simulation Header */}
       <div className="bg-paper px-4 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-amber" />
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink">
-            Simulated WhatsApp
+          <span className="w-2 h-2 rounded-full bg-green" />
+          <span className="text-xs font-mono font-medium text-ink">
+            Customer conversation
           </span>
           <span className="text-[11px] font-mono text-muted">
-            (Customer Channel Demo)
+            (This is a practice chat, not a real message)
           </span>
         </div>
 
@@ -107,7 +107,7 @@ export default function SimulatedWhatsApp({
             disabled={isClarifying}
             className="text-xs font-mono px-3 py-1 bg-ink text-white rounded hover:bg-ink/90 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {isClarifying ? "Drafting..." : "Ask customer now →"}
+            {isClarifying ? "Writing question..." : "Ask the customer →"}
           </button>
         )}
       </div>
@@ -115,10 +115,10 @@ export default function SimulatedWhatsApp({
       {/* Message Viewport */}
       <div className="p-4 space-y-3 min-h-[140px] max-h-[320px] overflow-y-auto bg-[#FAF9F5]">
         {chat.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted font-mono">
-            <div>No customer messages yet.</div>
-            <div className="text-[11px] mt-1">
-              Click &quot;Ask customer now&quot; or trigger payment clarification to begin.
+          <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted font-body">
+            <div className="font-medium text-ink">We haven't asked the customer yet.</div>
+            <div className="text-[11px] mt-1 text-muted">
+              When we are not sure which order this belongs to, we ask one polite question here.
             </div>
           </div>
         ) : (
@@ -147,7 +147,7 @@ export default function SimulatedWhatsApp({
                       isSystem ? "text-white/70" : "text-muted"
                     }`}
                   >
-                    {isSystem ? "System" : "Customer"} · {timeStr}
+                    {isSystem ? "Your store" : "Customer"} · {timeStr}
                   </div>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function SimulatedWhatsApp({
       <div className="p-3 bg-white border-t border-line">
         {/* Quick Suggestion Chips */}
         <div className="flex flex-wrap items-center gap-1.5 mb-2">
-          <span className="text-[10px] font-mono text-muted">Quick test:</span>
+          <span className="text-[10px] font-mono text-muted">Try a reply:</span>
           {["haan blue kurta wala", "red one pls", "yoga mat"].map((chip) => (
             <button
               key={chip}
@@ -185,7 +185,7 @@ export default function SimulatedWhatsApp({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type customer reply (e.g. 'haan blue kurta wala')..."
+            placeholder="Type what the customer might say (e.g. 'the blue kurta')..."
             className="flex-1 text-xs font-body px-3 py-2 bg-paper border border-line rounded focus:outline-none focus:border-ink transition-colors"
           />
           <button
@@ -193,7 +193,7 @@ export default function SimulatedWhatsApp({
             disabled={isSending || !input.trim()}
             className="text-xs font-mono font-medium px-4 py-2 bg-ink text-white rounded hover:bg-ink/90 transition-colors disabled:opacity-50 cursor-pointer"
           >
-            {isSending ? "Sending..." : "Send"}
+            {isSending ? "Sending..." : "Send reply"}
           </button>
         </form>
       </div>

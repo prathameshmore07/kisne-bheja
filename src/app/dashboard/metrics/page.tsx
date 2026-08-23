@@ -44,27 +44,27 @@ export default function BenchmarkMetricsPage() {
           href="/dashboard"
           className="text-xs font-mono text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
         >
-          <span>←</span> <span>Back to Dashboard</span>
+          <span>←</span> <span>Back to all payments</span>
         </Link>
       </div>
 
       <div className="flex flex-wrap items-baseline justify-between gap-4 mb-8">
         <div>
           <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">
-            Evaluation Suite
+            Accuracy test
           </div>
-          <h1 className="font-display text-3xl font-bold">Benchmark Metrics</h1>
-          <p className="text-xs text-muted font-mono mt-1">
-            Ground-truth evaluation across 100 payments and 130 multi-collision orders
+          <h1 className="font-display text-3xl font-bold text-ink">How well did it work?</h1>
+          <p className="text-xs text-muted font-body mt-1">
+            Tested across 100 payments and 130 overlapping orders with known correct answers.
           </p>
         </div>
       </div>
 
       {!data ? (
         <div className="bg-white border border-line rounded-lg p-8 text-center shadow-xs">
-          <div className="text-sm font-body font-medium mb-2">No benchmark results found</div>
-          <p className="text-xs text-muted font-mono mb-4">
-            Run the isolated synthetic benchmark suite from your terminal to generate ground-truth accuracy metrics:
+          <div className="text-sm font-body font-medium mb-2 text-ink">No test results found</div>
+          <p className="text-xs text-muted font-body mb-4">
+            Run the benchmark test from your terminal to calculate real accuracy numbers:
           </p>
           <pre className="bg-paper border border-line p-3 rounded text-xs font-mono inline-block text-left text-ink">
             DATABASE_PATH=./benchmark.db npx tsx src/lib/benchmark.ts
@@ -76,73 +76,73 @@ export default function BenchmarkMetricsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-white border border-line rounded-lg p-5 shadow-xs">
               <div className="text-xs font-mono text-muted uppercase tracking-wider mb-1">
-                Auto-Resolution Rate
+                Matched automatically
               </div>
               <div className="font-display text-3xl font-bold text-ink">
                 {Math.round(data.auto_resolution_rate * 100)}%
               </div>
-              <div className="text-[11px] text-muted font-mono mt-1">
-                {data.breakdown.auto_resolved} payments auto-linked (≥85% conf)
+              <div className="text-[11px] text-muted font-body mt-1">
+                {data.breakdown.auto_resolved} payments matched immediately
               </div>
             </div>
 
             <div className="bg-white border border-line rounded-lg p-5 shadow-xs">
               <div className="text-xs font-mono text-muted uppercase tracking-wider mb-1">
-                Correct Resolution Rate
+                How often we got it right
               </div>
               <div className="font-display text-3xl font-bold text-green">
                 {Math.round(data.correct_resolution_rate * 100)}%
               </div>
-              <div className="text-[11px] text-muted font-mono mt-1">
-                Confirmed accurate vs ground truth
+              <div className="text-[11px] text-muted font-body mt-1">
+                Verified against ground truth orders
               </div>
             </div>
 
             <div className="bg-white border border-line rounded-lg p-5 shadow-xs">
               <div className="text-xs font-mono text-muted uppercase tracking-wider mb-1">
-                False Auto-Link Rate
+                Wrong automatic matches
               </div>
               <div className="font-display text-3xl font-bold text-ink">
                 {Math.round(data.false_auto_link_rate * 100)}%
               </div>
-              <div className="text-[11px] text-muted font-mono mt-1">
-                Zero false autonomous links
+              <div className="text-[11px] text-muted font-body mt-1">
+                Zero incorrect automatic pairings
               </div>
             </div>
 
             <div className="bg-white border border-line rounded-lg p-5 shadow-xs">
               <div className="text-xs font-mono text-muted uppercase tracking-wider mb-1">
-                Ambiguity Resolution Rate
+                Solved by asking
               </div>
               <div className="font-display text-3xl font-bold text-amber">
                 {Math.round(data.ambiguity_resolution_rate * 100)}%
               </div>
-              <div className="text-[11px] text-muted font-mono mt-1">
-                Resolved via clarification / review
+              <div className="text-[11px] text-muted font-body mt-1">
+                Untangled via customer answer
               </div>
             </div>
 
             <div className="bg-white border border-line rounded-lg p-5 shadow-xs">
               <div className="text-xs font-mono text-muted uppercase tracking-wider mb-1">
-                Manual Review Rate
+                Sent to a human
               </div>
               <div className="font-display text-3xl font-bold text-red">
                 {Math.round(data.manual_review_rate * 100)}%
               </div>
-              <div className="text-[11px] text-muted font-mono mt-1">
-                {data.breakdown.manual_review} payments halted safely
+              <div className="text-[11px] text-muted font-body mt-1">
+                {data.breakdown.manual_review} payments paused for your check
               </div>
             </div>
 
             <div className="bg-white border border-line rounded-lg p-5 shadow-xs">
               <div className="text-xs font-mono text-muted uppercase tracking-wider mb-1">
-                Total Value Resolved
+                Total money matched
               </div>
               <div className="font-display text-2xl font-bold text-ink">
                 {formatRupees(data.total_value_resolved_paise)}
               </div>
-              <div className="text-[11px] text-muted font-mono mt-1">
-                Across {data.total_payments} test transactions
+              <div className="text-[11px] text-muted font-body mt-1">
+                Across {data.total_payments} test payments
               </div>
             </div>
           </div>
@@ -150,66 +150,66 @@ export default function BenchmarkMetricsPage() {
           {/* Breakdown Table */}
           <div className="bg-white border border-line rounded-lg overflow-hidden shadow-xs">
             <div className="px-5 py-4 border-b border-line">
-              <h2 className="font-display font-bold text-base">Pipeline Resolution Breakdown</h2>
+              <h2 className="font-display font-bold text-base text-ink">How payments were matched</h2>
             </div>
             <div className="divide-y divide-line font-mono text-xs">
               <div className="grid grid-cols-12 px-5 py-3 bg-paper font-semibold text-muted text-[11px] uppercase tracking-wider">
-                <div className="col-span-5">Resolution Channel</div>
+                <div className="col-span-5">How it was matched</div>
                 <div className="col-span-2 text-right">Count</div>
                 <div className="col-span-2 text-right">Share</div>
-                <div className="col-span-3 text-right">Policy Action</div>
+                <div className="col-span-3 text-right">Why</div>
               </div>
 
               <div className="grid grid-cols-12 px-5 py-3 items-center">
-                <div className="col-span-5 font-medium flex items-center gap-2">
+                <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
                   <span className="w-2 h-2 rounded-full bg-green" />
-                  Deterministic Auto-Link
+                  Matched automatically
                 </div>
-                <div className="col-span-2 text-right tabular-nums">{data.breakdown.auto_resolved}</div>
-                <div className="col-span-2 text-right tabular-nums">
+                <div className="col-span-2 text-right tabular-nums text-ink">{data.breakdown.auto_resolved}</div>
+                <div className="col-span-2 text-right tabular-nums text-ink">
                   {Math.round((data.breakdown.auto_resolved / data.total_payments) * 100)}%
                 </div>
-                <div className="col-span-3 text-right text-muted">Confidence ≥ 85%</div>
+                <div className="col-span-3 text-right text-muted">Certain without asking</div>
               </div>
 
               <div className="grid grid-cols-12 px-5 py-3 items-center">
-                <div className="col-span-5 font-medium flex items-center gap-2">
+                <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
                   <span className="w-2 h-2 rounded-full bg-green" />
-                  Resolved via Clarification
+                  Solved by asking customer
                 </div>
-                <div className="col-span-2 text-right tabular-nums">
+                <div className="col-span-2 text-right tabular-nums text-ink">
                   {data.breakdown.resolved_via_clarification}
                 </div>
-                <div className="col-span-2 text-right tabular-nums">
+                <div className="col-span-2 text-right tabular-nums text-ink">
                   {Math.round((data.breakdown.resolved_via_clarification / data.total_payments) * 100)}%
                 </div>
-                <div className="col-span-3 text-right text-muted">Customer confirmed</div>
+                <div className="col-span-3 text-right text-muted">Customer confirmed item</div>
               </div>
 
               <div className="grid grid-cols-12 px-5 py-3 items-center">
-                <div className="col-span-5 font-medium flex items-center gap-2">
+                <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
                   <span className="w-2 h-2 rounded-full bg-amber" />
-                  Resolved via Merchant Approval
+                  Ready for you to confirm
                 </div>
-                <div className="col-span-2 text-right tabular-nums">
+                <div className="col-span-2 text-right tabular-nums text-ink">
                   {data.breakdown.resolved_via_merchant_approval}
                 </div>
-                <div className="col-span-2 text-right tabular-nums">
+                <div className="col-span-2 text-right tabular-nums text-ink">
                   {Math.round((data.breakdown.resolved_via_merchant_approval / data.total_payments) * 100)}%
                 </div>
-                <div className="col-span-3 text-right text-muted">Confidence &gt; 60%</div>
+                <div className="col-span-3 text-right text-muted">Close match waiting for you</div>
               </div>
 
               <div className="grid grid-cols-12 px-5 py-3 items-center">
-                <div className="col-span-5 font-medium flex items-center gap-2">
+                <div className="col-span-5 font-medium flex items-center gap-2 text-ink">
                   <span className="w-2 h-2 rounded-full bg-red" />
-                  Manual Review Guard
+                  Sent to human review
                 </div>
-                <div className="col-span-2 text-right tabular-nums">{data.breakdown.manual_review}</div>
-                <div className="col-span-2 text-right tabular-nums">
+                <div className="col-span-2 text-right tabular-nums text-ink">{data.breakdown.manual_review}</div>
+                <div className="col-span-2 text-right tabular-nums text-ink">
                   {Math.round((data.breakdown.manual_review / data.total_payments) * 100)}%
                 </div>
-                <div className="col-span-3 text-right text-muted">Vague / Inconclusive</div>
+                <div className="col-span-3 text-right text-muted">Unclear reply or no match</div>
               </div>
             </div>
           </div>
@@ -217,11 +217,11 @@ export default function BenchmarkMetricsPage() {
           {/* Methodology Callout */}
           <div className="bg-paper border border-line rounded-lg p-5 text-xs font-body text-muted leading-relaxed">
             <div className="font-mono font-bold text-ink mb-1 uppercase tracking-wider text-[11px]">
-              Evaluation Methodology & Ground Truth
+              How we tested this
             </div>
-            <p className="mb-2">{data.note}</p>
-            <p className="italic text-[11px]">
-              Note: Resolution latency metrics represent automated benchmark simulation runtimes rather than real-world human response intervals.
+            <p className="mb-2 text-ink">{data.note}</p>
+            <p className="italic text-[11px] text-muted">
+              Note: Time-to-match numbers here show the computer simulation speed, not how fast a real customer types back.
             </p>
           </div>
         </div>
