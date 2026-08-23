@@ -39,7 +39,7 @@ export default function LiveAuditTimeline({
         <span className="text-xs text-muted font-mono">{timeline.length} events</span>
       </div>
 
-      <div className="bg-white border border-line rounded-lg p-5 font-mono text-xs divide-y divide-line/60 shadow-xs">
+      <div className="bg-white border border-line rounded-lg p-5 font-mono text-xs divide-y divide-line/60">
         {timeline.length === 0 ? (
           <div className="text-muted">No activity recorded yet.</div>
         ) : (

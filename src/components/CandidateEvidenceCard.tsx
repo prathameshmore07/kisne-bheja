@@ -81,7 +81,7 @@ export default function CandidateEvidenceCard({
 
   return (
     <div
-      className="border rounded-lg p-5 bg-white transition-all duration-300 shadow-xs hover:shadow-sm"
+      className="border rounded-lg p-5 bg-white transition-all duration-300"
       style={{ borderColor: isBest ? color : "var(--line)" }}
     >
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
@@ -119,7 +119,7 @@ export default function CandidateEvidenceCard({
                 type="button"
                 onClick={onApprove}
                 disabled={busy}
-                className="text-xs font-mono px-2.5 py-1 rounded bg-[#227A56] text-white hover:bg-[#227A56]/90 disabled:opacity-50 cursor-pointer shadow-2xs transition-colors"
+                className="text-xs font-mono px-2.5 py-1 rounded bg-[#227A56] text-white hover:bg-[#227A56]/90 disabled:opacity-50 cursor-pointer transition-colors"
               >
                 {busy ? "..." : "Confirm"}
               </button>

@@ -88,7 +88,7 @@ export default function SimulatedWhatsApp({
   }
 
   return (
-    <div className="bg-white border border-line rounded-lg overflow-hidden shadow-xs">
+    <div className="bg-white border border-line rounded-lg overflow-hidden">
       {/* Simulation Header */}
       <div className="bg-paper px-4 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function SimulatedWhatsApp({
                 className={`flex ${isSystem ? "justify-end" : "justify-start"} animate-fadeIn`}
               >
                 <div
-                  className={`max-w-[80%] rounded-xl px-3.5 py-2.5 shadow-2xs ${
+                  className={`max-w-[80%] rounded-lg px-3.5 py-2.5 ${
                     isSystem
                       ? "bg-[#227A56] text-white rounded-tr-xs"
                       : "bg-white text-ink border border-line rounded-tl-xs"

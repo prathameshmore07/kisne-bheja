@@ -28,9 +28,9 @@ export default async function PaymentDetailPage({ params }: PageProps) {
   const initialChat = getChatForPayment(paymentId);
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
+    <main className="max-w-4xl mx-auto px-6 py-12">
       {/* Header Navigation */}
-      <div className="mb-6">
+      <div className="mb-8">
         <Link
           href="/dashboard"
           className="text-xs font-mono text-muted hover:text-ink transition-colors inline-flex items-center gap-1.5"
@@ -39,23 +39,23 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         </Link>
       </div>
 
-      {/* Payment Overview Card */}
-      <section className="bg-white border border-line rounded-lg p-6 mb-8 shadow-xs">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+      {/* Payment Overview — Plain Document Style */}
+      <section className="pb-8 mb-10 border-b border-line">
+        <div className="flex flex-wrap items-baseline justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">Incoming payment</div>
-            <h1 className="font-display text-3xl font-bold text-ink">{formatRupees(payment.amount)}</h1>
+            <h1 className="font-display text-4xl sm:text-5xl font-bold text-ink tracking-tight">
+              {formatRupees(payment.amount)}
+            </h1>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted font-mono mt-2">
-              <span>Payment ID: {payment.id.slice(0, 8)}...</span>
-              {payment.razorpay_payment_id && <span>Gateway ref: {payment.razorpay_payment_id}</span>}
-              {payment.payer_vpa_hash && <span>Payer ref: {payment.payer_vpa_hash}</span>}
+              <span>Payment: {payment.id.slice(0, 8)}</span>
+              {payment.razorpay_payment_id && <span>Gateway: {payment.razorpay_payment_id}</span>}
               <span>Received: {new Date(payment.received_at).toLocaleTimeString("en-IN")}</span>
             </div>
           </div>
         </div>
 
         {resolvedOrder && (
-          <div className="mt-4 pt-4 border-t border-line flex items-center justify-between text-xs font-body">
+          <div className="mt-4 pt-4 border-t border-line/60 flex items-center justify-between text-sm font-body">
             <span className="text-muted">Matched to:</span>
             <span className="font-medium text-ink">
               {resolvedOrder.product_name} ({formatRupees(resolvedOrder.amount)}) · {resolvedOrder.customer_name ?? "Customer"}
@@ -64,9 +64,8 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Customer Conversation (Simulated WhatsApp) — Prominent Sequential Experience */}
-      <section className="mb-10">
-        <div className="text-xs uppercase tracking-wide text-muted font-mono mb-3">Customer conversation</div>
+      {/* Customer Conversation (Simulated WhatsApp) */}
+      <section className="mb-12">
         <SimulatedWhatsApp
           paymentId={payment.id}
           initialChat={initialChat}
@@ -75,7 +74,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
       </section>
 
       {/* Candidate Breakdown & Reasoning */}
-      <section className="mb-10">
+      <section className="mb-12">
         <LiveConfidence
           paymentId={payment.id}
           initialPayment={{
@@ -98,11 +97,13 @@ export default async function PaymentDetailPage({ params }: PageProps) {
       </section>
 
       {/* Activity Timeline */}
-      <LiveAuditTimeline
-        paymentId={payment.id}
-        initialTimeline={timeline}
-        paymentStatus={payment.status}
-      />
+      <section className="pt-8 border-t border-line">
+        <LiveAuditTimeline
+          paymentId={payment.id}
+          initialTimeline={timeline}
+          paymentStatus={payment.status}
+        />
+      </section>
     </main>
   );
 }

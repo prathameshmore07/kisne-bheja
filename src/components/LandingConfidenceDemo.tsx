@@ -6,11 +6,11 @@ import { useAnimatedNumber } from "@/lib/useAnimatedNumber";
 type Step = 0 | 1 | 2 | 3 | 4;
 
 const TIMINGS: Record<Step, number> = {
-  0: 2000, // Initial state: 45% not sure yet
-  1: 1800, // Clarification question bubble appears
-  2: 1800, // Customer reply bubble appears
-  3: 2500, // Confidence animates to 98%, status flips to Payment matched
-  4: 1000, // Reset transition
+  0: 2200, // Initial state: 45% unsure
+  1: 1800, // AI question appears
+  2: 1800, // Customer reply appears
+  3: 2600, // Conf climbs to 98%, status flips
+  4: 1000, // Loop transition
 };
 
 export default function LandingConfidenceDemo() {
@@ -33,64 +33,38 @@ export default function LandingConfidenceDemo() {
   const showCustomerReply = step >= 2 && step <= 3;
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white rounded-xl border border-line p-5 shadow-sm font-body">
-      {/* Header bar */}
-      <div className="flex items-center justify-between pb-3 mb-4 border-b border-line">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green animate-pulse" />
-          <span className="text-xs font-mono font-medium text-ink">How money gets matched</span>
+    <div className="w-full max-w-md mx-auto bg-white rounded-lg border border-line p-6 font-body">
+      {/* Top: Incoming payment amount & status */}
+      <div className="flex items-baseline justify-between pb-4 mb-4 border-b border-line">
+        <div>
+          <div className="font-display text-3xl font-bold tracking-tight text-ink">₹499.00</div>
+          <div className="text-xs font-mono text-muted mt-0.5">UPI received · 2 orders with this price</div>
         </div>
         <div
-          className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded transition-colors duration-500"
+          className="text-xs font-mono font-medium px-2.5 py-1 rounded"
           style={{
             color: isResolved ? "var(--green)" : "var(--amber)",
-            backgroundColor: isResolved ? "rgba(34, 122, 86, 0.1)" : "rgba(220, 159, 61, 0.1)",
+            backgroundColor: isResolved ? "rgba(34, 122, 86, 0.08)" : "rgba(220, 159, 61, 0.08)",
           }}
         >
-          {isResolved ? "Payment matched" : "We're not sure yet"} · {displayPct}%
+          {isResolved ? "Payment matched" : "We're not sure yet"}
         </div>
       </div>
 
-      {/* Payment Meta */}
-      <div className="bg-paper rounded-lg p-3 mb-4 border border-line/60">
-        <div className="flex justify-between items-center text-xs font-mono text-muted mb-1">
-          <span>PAYMENT RECEIVED</span>
-          <span>pay_90412</span>
-        </div>
-        <div className="flex justify-between items-baseline">
-          <span className="font-display text-2xl font-bold text-ink">₹499.00</span>
-          <span className="text-xs font-mono text-muted">via UPI (Payer: Priya S.)</span>
-        </div>
-      </div>
-
-      {/* Top Candidate Card */}
-      <div
-        className="rounded-lg p-4 border transition-all duration-500 mb-4 bg-white"
-        style={{
-          borderColor: isResolved ? "var(--green)" : "var(--amber)",
-          boxShadow: isResolved ? "0 2px 8px rgba(34, 122, 86, 0.08)" : "none",
-        }}
-      >
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-display font-bold text-sm text-ink">Blue Kurta (Size M)</h4>
-              {isResolved && (
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.2 rounded bg-green/10 text-green font-bold">
-                  Matched
-                </span>
-              )}
-            </div>
-            <div className="text-[11px] font-mono text-muted">Order #902 · Priya Sharma · 4m ago</div>
+      {/* Center: Order candidate & animated confidence number */}
+      <div className="py-2 mb-4">
+        <div className="flex items-baseline justify-between mb-2">
+          <div className="font-display font-bold text-base text-ink">
+            Blue Kurta (Size M)
           </div>
           <div className="text-right">
-            <div className="font-display text-xl font-bold tabular-nums text-ink">{displayPct}%</div>
-            <div className="text-[9px] font-mono uppercase text-muted">How sure we are</div>
+            <span className="font-display text-2xl font-bold tabular-nums text-ink">{displayPct}%</span>
+            <span className="text-[11px] font-mono text-muted ml-1.5">sure</span>
           </div>
         </div>
 
-        {/* Confidence Bar */}
-        <div className="h-1.5 rounded-full bg-line overflow-hidden mb-3">
+        {/* Thin precision bar */}
+        <div className="h-1 rounded-full bg-line overflow-hidden mb-3">
           <div
             className="h-full rounded-full transition-all duration-700 ease-out"
             style={{
@@ -100,52 +74,42 @@ export default function LandingConfidenceDemo() {
           />
         </div>
 
-        {/* Evidence items */}
-        <div className="space-y-1 font-mono text-[11px]">
-          <div className="flex items-center justify-between text-muted">
-            <span className="text-ink">✓ Same amount (+45%)</span>
-            <span>2 orders with same price</span>
-          </div>
-          <div className="flex items-center justify-between text-muted">
-            <span className="text-ink">✓ Arrived around same time (+15%)</span>
-            <span>Paid within 4 minutes</span>
-          </div>
-          {isResolved && (
-            <div className="flex items-center justify-between text-green font-semibold animate-fadeIn">
-              <span>✓ Customer confirmed it (+38%)</span>
-              <span>Confirmed in chat</span>
-            </div>
+        <div className="text-xs font-mono text-muted">
+          {isResolved ? (
+            <span className="text-green font-medium">✓ Customer confirmed in chat</span>
+          ) : (
+            <span>Same amount (+45%) · Timing match (+15%)</span>
           )}
         </div>
       </div>
 
-      {/* Customer Conversation Section */}
-      <div className="bg-paper rounded-lg p-3 border border-line/60 space-y-2">
-        <div className="text-[10px] font-mono uppercase tracking-wider text-muted font-semibold mb-1">
-          One plain question when we are unsure
-        </div>
-
+      {/* Conversation: Plain, calm document style */}
+      <div className="pt-4 border-t border-line space-y-2.5 min-h-[110px]">
         {showAIQuestion ? (
-          <div className="bg-white border border-line rounded-lg rounded-tl-none p-2.5 text-xs text-ink animate-fadeIn shadow-2xs max-w-[90%]">
-            <div className="text-[10px] font-mono text-muted mb-0.5">Your store</div>
-            Hi Priya! Just checking, was your ₹499 payment for the <strong>Blue Kurta</strong> or the <strong>Red Kurta</strong>?
+          <div className="text-xs text-ink animate-fadeIn">
+            <div className="text-[10px] font-mono uppercase text-muted mb-0.5">Your store asked</div>
+            <div className="p-2.5 rounded bg-paper text-ink leading-relaxed">
+              Hi Priya! Just checking, was your ₹499 payment for the <strong>Blue Kurta</strong> or the <strong>Red Kurta</strong>?
+            </div>
           </div>
         ) : (
-          <div className="text-xs text-muted italic font-body py-1">
-            {step === 0 ? "Checking with the customer..." : "Starting over..."}
+          <div className="text-xs text-muted font-mono italic py-4 text-center">
+            {step === 0 ? "Asking customer one question..." : "Starting over..."}
           </div>
         )}
 
         {showCustomerReply && (
-          <div className="bg-[#227A56]/10 border border-[#227A56]/20 rounded-lg rounded-tr-none p-2.5 text-xs text-ink ml-auto max-w-[85%] animate-fadeIn">
-            <div className="text-[10px] font-mono text-green font-bold mb-0.5">Customer</div>
-            haan blue kurta wala
+          <div className="text-xs text-ink animate-fadeIn">
+            <div className="text-[10px] font-mono uppercase text-muted mb-0.5 text-right">Customer replied</div>
+            <div className="p-2.5 rounded bg-paper text-ink ml-auto max-w-[85%] leading-relaxed font-mono">
+              haan blue kurta wala
+            </div>
           </div>
         )}
       </div>
 
       {/* Loop Progress Indicator */}
-      <div className="flex items-center justify-center gap-1.5 mt-4">
+      <div className="flex items-center justify-center gap-1.5 mt-5 pt-3 border-t border-line/60">
         {[0, 1, 2, 3].map((i) => (
           <span
             key={i}

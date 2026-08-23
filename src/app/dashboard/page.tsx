@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic"; // always read fresh from SQLite, no cac
 function StatCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="flex-1 min-w-[160px]">
-      <div className="text-xs uppercase tracking-wide text-muted font-body">{label}</div>
-      <div className="font-display text-3xl mt-1 text-ink">{value}</div>
+      <div className="text-xs uppercase tracking-wide text-muted font-mono">{label}</div>
+      <div className="font-display text-3xl sm:text-4xl font-bold mt-1 text-ink tabular-nums">{value}</div>
       {sub && <div className="text-xs text-muted font-body mt-0.5">{sub}</div>}
     </div>
   );
@@ -21,16 +21,17 @@ export default function DashboardPage() {
   const metrics = getDashboardMetrics();
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-10">
-      <header className="mb-8">
-        <div className="text-xs uppercase tracking-widest text-muted font-mono mb-1">Kisne Bheja</div>
-        <h1 className="font-display text-2xl font-bold text-ink">Which order was each payment for?</h1>
-        <Link href="/dashboard/metrics" className="text-xs text-muted font-mono hover:underline mt-1 inline-block">
+    <main className="max-w-4xl mx-auto px-6 py-12">
+      <header className="mb-10">
+        <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">
+          Which order was each payment for?
+        </h1>
+        <Link href="/dashboard/metrics" className="text-xs text-muted font-mono hover:text-ink underline mt-2 inline-block">
           view how well it worked →
         </Link>
       </header>
 
-      <section className="flex flex-wrap gap-8 border-y border-line py-6 mb-8">
+      <section className="flex flex-wrap gap-8 border-y border-line py-8 mb-10">
         <StatCell
           label="Payments to check"
           value={formatRupees(metrics.unresolvedValue)}
