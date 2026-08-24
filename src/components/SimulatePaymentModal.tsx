@@ -130,7 +130,7 @@ export default function SimulatePaymentModal() {
 
       const data = await res.json();
       if (!res.ok || data.error) {
-        throw new Error(data.error || "Failed to simulate payment");
+        throw new Error(data.error || "Failed to process payment");
       }
 
       setIsOpen(false);
@@ -154,7 +154,7 @@ export default function SimulatePaymentModal() {
         onClick={() => setIsOpen(true)}
         className="text-xs font-mono px-3.5 py-2 rounded-lg border border-line bg-paper text-ink hover:border-ink hover:text-ink transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.98] font-semibold tracking-tight"
       >
-        Simulate Payment
+        Test Payment
       </button>
 
       {isOpen && (
@@ -164,13 +164,13 @@ export default function SimulatePaymentModal() {
             <div className="px-6 pt-6 pb-4 border-b border-line bg-gradient-to-b from-paper/80 to-transparent flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-display font-bold text-lg text-ink tracking-tight flex items-center gap-2">
-                  <span>Simulate Incoming Payment</span>
+                  <span>Ingest Inbound Payment</span>
                   <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-paper border border-line text-muted">
-                    Sandbox Test
+                    Test Mode
                   </span>
                 </h3>
                 <p className="text-xs text-muted font-body mt-0.5">
-                  Test the complete matching, AI clarification and batch resolution engine offline.
+                  Create an inbound transaction to test payment matching and automated reconciliation.
                 </p>
               </div>
               <button
@@ -205,7 +205,7 @@ export default function SimulatePaymentModal() {
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
                     <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted">
-                      Select Scenario Preset
+                      Select Test Scenario
                     </label>
                     <span className="text-[11px] text-muted font-mono">1-click test scenarios</span>
                   </div>
@@ -407,7 +407,7 @@ export default function SimulatePaymentModal() {
                         <span>Processing Payment...</span>
                       </>
                     ) : (
-                      <span>Simulate &amp; Process</span>
+                      <span>Process Payment</span>
                     )}
                   </button>
                 </div>

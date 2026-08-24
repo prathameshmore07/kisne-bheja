@@ -180,15 +180,15 @@ export default function SimulatedWhatsApp({
 
   return (
     <div className="bg-white border border-line rounded-lg overflow-hidden font-body">
-      {/* Simulation Header */}
+      {/* Header */}
       <div className="bg-paper px-4 py-3 border-b border-line flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-green" />
           <span className="text-xs font-mono font-medium text-ink">
-            Customer conversation
+            WhatsApp Customer Channel
           </span>
           <span className="text-[11px] font-mono text-muted">
-            (Interactive sandbox — test both Store & Customer sides)
+            Live messaging and reply interpretation
           </span>
         </div>
 
@@ -210,7 +210,7 @@ export default function SimulatedWhatsApp({
               disabled={isClarifying}
               className="text-xs font-mono px-3 py-1 bg-ink text-white rounded hover:bg-ink/90 transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
             >
-              {isClarifying ? "AI writing question..." : "Ask with AI →"}
+              {isClarifying ? "Writing question..." : "Ask Customer →"}
             </button>
           </div>
         )}
@@ -220,9 +220,9 @@ export default function SimulatedWhatsApp({
       <div className="p-4 space-y-3 min-h-[140px] max-h-[320px] overflow-y-auto bg-[#FAF9F5]">
         {chat.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center text-xs text-muted font-body">
-            <div className="font-medium text-ink">No conversation started yet.</div>
+            <div className="font-medium text-ink">No messages sent yet.</div>
             <div className="text-[11px] mt-1 text-muted">
-              Click &quot;Ask with AI&quot; above, or switch to <strong>Your Store</strong> / <strong>Customer</strong> below to send a message.
+              Click &quot;Ask Customer&quot; above to dispatch a clarification question.
             </div>
           </div>
         ) : (
@@ -247,11 +247,13 @@ export default function SimulatedWhatsApp({
                 >
                   <div className="text-xs font-body leading-relaxed">{msg.message}</div>
                   <div
-                    className={`text-[10px] font-mono mt-1 text-right ${
+                    className={`text-[10px] font-mono mt-1 text-right flex items-center justify-end gap-1 ${
                       isSystem ? "text-white/75" : "text-muted"
                     }`}
                   >
-                    {isSystem ? "🏪 Your store" : "👤 Customer"} · {timeStr}
+                    <span>{isSystem ? "Your store" : "Customer"}</span>
+                    <span>·</span>
+                    <span>{timeStr}</span>
                   </div>
                 </div>
               </div>
@@ -260,9 +262,9 @@ export default function SimulatedWhatsApp({
         )}
       </div>
 
-      {/* Interactive Chat Control Panel */}
+      {/* Message Control Panel */}
       <div className="p-3 bg-white border-t border-line space-y-2.5">
-        {/* Persona Switcher Tabs */}
+        {/* Channel Persona Switcher */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 bg-paper p-1 rounded border border-line text-xs font-mono">
             <button
@@ -274,8 +276,11 @@ export default function SimulatedWhatsApp({
                   : "text-muted hover:text-ink"
               }`}
             >
-              <span>👤</span>
-              <span>Type as Customer</span>
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span>Customer Reply</span>
             </button>
             <button
               type="button"
@@ -286,20 +291,23 @@ export default function SimulatedWhatsApp({
                   : "text-muted hover:text-ink"
               }`}
             >
-              <span>🏪</span>
-              <span>Type as Your Store</span>
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+              <span>Store Message</span>
             </button>
           </div>
 
           <span className="text-[10px] font-mono text-muted">
-            {role === "customer" ? "Replies evaluate confidence" : "Store message sent to chat"}
+            {role === "customer" ? "Inbound replies update confidence score" : "Outbound message to customer"}
           </span>
         </div>
 
-        {/* Quick Suggestion Chips based on selected role */}
+        {/* Shortcuts */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[10px] font-mono text-muted">
-            {role === "customer" ? "Customer shortcuts:" : "Store shortcuts:"}
+            {role === "customer" ? "Customer templates:" : "Store templates:"}
           </span>
           {role === "customer"
             ? ["haan blue kurta wala", "red one pls", "yoga mat"].map((chip) => (
@@ -344,8 +352,8 @@ export default function SimulatedWhatsApp({
             onChange={(e) => setInput(e.target.value)}
             placeholder={
               role === "customer"
-                ? "Type what the customer might say (e.g. 'the blue kurta')..."
-                : "Type message from your store to customer..."
+                ? "Type customer reply (e.g. 'the blue kurta')..."
+                : "Type message from store to customer..."
             }
             className="flex-1 text-xs font-body px-3 py-2 bg-paper border border-line rounded focus:outline-none focus:border-ink transition-colors"
           />
@@ -358,7 +366,7 @@ export default function SimulatedWhatsApp({
                 : "bg-[#227A56] text-white hover:bg-[#1c6446]"
             }`}
           >
-            {isSending ? "Sending..." : role === "customer" ? "Send as Customer" : "Send as Store"}
+            {isSending ? "Sending..." : role === "customer" ? "Send Reply" : "Send Message"}
           </button>
         </form>
       </div>

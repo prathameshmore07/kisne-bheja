@@ -79,7 +79,7 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Customer Conversation (Simulated WhatsApp) */}
+      {/* Customer Conversation (WhatsApp Channel) */}
       <section className="mb-12">
         <SimulatedWhatsApp
           paymentId={payment.id}

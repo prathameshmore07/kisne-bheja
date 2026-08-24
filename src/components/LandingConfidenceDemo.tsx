@@ -128,7 +128,12 @@ export default function LandingConfidenceDemo() {
 
             <div className="text-xs font-mono text-muted">
               {isScenario1Resolved ? (
-                <span className="text-green font-medium">✓ Customer confirmed in chat · Red Kurta ruled out</span>
+                <span className="text-green font-medium flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5 text-green shrink-0 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>Customer confirmed in chat · Red Kurta ruled out</span>
+                </span>
               ) : (
                 <span>Same amount (+45%) · Timing match (+15%)</span>
               )}
@@ -166,7 +171,7 @@ export default function LandingConfidenceDemo() {
                   <span className="text-[9px] bg-green/10 text-green px-1.5 py-0.5 rounded font-mono">Auto-fulfillment</span>
                 </div>
                 <div className="p-2 rounded bg-green/10 text-green dark:text-emerald-300 leading-relaxed font-medium border border-green/20">
-                  Confirmed — your Blue Kurta is on its way, thanks Priya! 📦
+                  Confirmed — your Blue Kurta is on its way, thanks Priya!
                 </div>
               </div>
             )}
@@ -241,7 +246,7 @@ export default function LandingConfidenceDemo() {
                 />
               </div>
               <div className="text-[11px] font-body flex items-center justify-between text-muted">
-                <span>{isScenario2Resolved ? "✓ Confirmed to Aman (Red Kurta)" : "Candidate: Blue or Red Kurta"}</span>
+                <span>{isScenario2Resolved ? "Confirmed to Aman (Red Kurta)" : "Candidate: Blue or Red Kurta"}</span>
                 {isScenario2Resolved && <span className="text-[10px] font-mono text-green font-medium">Auto-confirmed</span>}
               </div>
             </div>

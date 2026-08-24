@@ -260,7 +260,7 @@ export default function DashboardPaymentList({
                 <div className="max-w-md mx-auto space-y-3">
                   <div className="font-display font-bold text-base text-ink">No payments in ledger yet</div>
                   <p className="text-xs text-muted leading-relaxed">
-                    Kisne Bheja is listening for incoming payments. You can either make a test payment via Razorpay, or click &ldquo;Simulate Payment&rdquo; above to test the matching pipeline offline.
+                    Kisne Bheja is listening for incoming payments. You can either make a live payment via Razorpay, or click &ldquo;Test Payment&rdquo; above to verify the matching engine.
                   </p>
                 </div>
               ) : (

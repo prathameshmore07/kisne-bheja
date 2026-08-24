@@ -218,10 +218,10 @@ erDiagram
 ### Table Definitions
 
 1. **`orders`**: Customer purchase records awaiting payment confirmation.
-2. **`payments`**: Inbound transactions ingested from webhooks or simulation routes.
+2. **`payments`**: Inbound transactions ingested from webhooks or test endpoints.
 3. **`evidence_log`**: Immutable Confidence Ledger containing atomic signal additions and running score calculations.
 4. **`audit_log`**: Append-only operational event stream tracking all system calculations and merchant actions.
-5. **`simulated_chat`**: Outbound and inbound clarification messages.
+5. **`simulated_chat`**: Outbound and inbound customer clarification messages.
 6. **`merchant_rules`**: User-defined conditional scoring rules.
 
 ---

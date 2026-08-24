@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     return apiSuccess({
       payment: latestPayment || payment,
-      message: "Simulated payment successfully ingested and processed through matching pipeline",
+      message: "Payment successfully ingested and processed through matching pipeline",
     });
   } catch (err) {
     return handleApiError(err);
