@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatRupees, statusColor, statusLabel } from "@/lib/format";
 import { Payment, Order, WeeklyComparison } from "@/lib/types";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 import CsvExportButton from "./CsvExportButton";
 
 interface DashboardPaymentListProps {
@@ -23,8 +25,43 @@ export default function DashboardPaymentList({
   weeklyReport,
   cancelledOrders = [],
 }: DashboardPaymentListProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+
+  // Listen to payment updates & Supabase realtime
+  useEffect(() => {
+    const handleUpdate = () => {
+      router.refresh();
+    };
+    window.addEventListener("payment-updated", handleUpdate);
+
+    const supabase = getSupabaseBrowserClient();
+    let channel: any = null;
+    if (supabase) {
+      channel = supabase
+        .channel("dashboard-payments-live")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "payments",
+          },
+          () => {
+            router.refresh();
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      window.removeEventListener("payment-updated", handleUpdate);
+      if (channel && supabase) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [router]);
 
   const batchSet = useMemo(() => new Set(batchResolvedIds), [batchResolvedIds]);
 

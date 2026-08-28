@@ -138,13 +138,30 @@ export default function CreatePaymentLinkModal() {
               router.refresh();
             },
           },
-          handler: function (response: any) {
+          handler: async function (response: any) {
             console.log("Razorpay payment completed:", response);
-            setIsOpen(false);
-            setLoading(false);
-            setTimeout(() => {
+            try {
+              if (response.razorpay_payment_id) {
+                await fetch("/api/payments/verify", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    amount: amountPaise,
+                    description: targetDesc,
+                  }),
+                });
+              }
+            } catch (err) {
+              console.error("Payment verification error:", err);
+            } finally {
+              setIsOpen(false);
+              setLoading(false);
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("payment-updated"));
+              }
               router.refresh();
-            }, 1200);
+            }
           },
         };
 
