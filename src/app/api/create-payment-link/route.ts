@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     const link = await createPaymentLink({ amount, description, orderId, customerVpa });
     return NextResponse.json(link);
   } catch (err: any) {
+    const message = err?.error?.description || err?.message || "Razorpay error";
     console.error("Razorpay payment link creation error:", err);
-    return NextResponse.json({ error: err?.message ?? "Razorpay error" }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

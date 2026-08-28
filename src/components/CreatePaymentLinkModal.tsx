@@ -85,7 +85,13 @@ export default function CreatePaymentLinkModal() {
   const [description, setDescription] = useState("Kisne Bheja Live Test Payment");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedLink, setGeneratedLink] = useState<{ id: string; short_url: string; upi_link?: string; key_id?: string } | null>(null);
+  const [generatedLink, setGeneratedLink] = useState<{
+    id: string;
+    short_url: string;
+    upi_link?: string;
+    key_id?: string;
+    auth_warning?: string;
+  } | null>(null);
   const [copied, setCopied] = useState(false);
   const router = useRouter();
 
@@ -141,6 +147,7 @@ export default function CreatePaymentLinkModal() {
         short_url: data.short_url,
         upi_link: data.upi_link,
         key_id: data.key_id,
+        auth_warning: data.auth_warning,
       });
       setLoading(false);
     } catch (err: any) {
@@ -273,6 +280,14 @@ export default function CreatePaymentLinkModal() {
                       Complete payment below using Razorpay test credentials. When captured, Razorpay delivers a verified HMAC webhook to <code className="font-mono text-[11px] bg-paper px-1 py-0.5 rounded">/api/webhook</code> to match the transaction.
                     </p>
                   </div>
+
+                  {/* Auth / Server Warning banner if present */}
+                  {generatedLink.auth_warning && (
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs font-mono flex items-start gap-2">
+                      <span className="shrink-0 mt-0.5">ℹ</span>
+                      <span>{generatedLink.auth_warning}. Direct Razorpay Checkout Modal below is ready for live test payments.</span>
+                    </div>
+                  )}
 
                   {/* Primary Action: Direct Razorpay Checkout Modal */}
                   <div className="p-4 rounded-xl bg-paper border border-line space-y-3">
