@@ -61,10 +61,10 @@ export default function LandingPage() {
       <section className="border-t border-line py-20">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-ink mb-4 max-w-xl">
-            Why Indian stores lose hours matching UPI payments
+            Why online stores lose hours matching incoming payments
           </h2>
           <p className="text-base text-muted font-normal mb-12 max-w-xl leading-relaxed">
-            When money lands in your bank, UPI notifications do not include customer cart details.
+            When money lands in your bank, payment notifications do not include customer cart details.
           </p>
 
           <div className="space-y-8 max-w-2xl text-sm leading-relaxed">
@@ -81,9 +81,9 @@ export default function LandingPage() {
             <div className="flex items-start gap-4">
               <span className="font-mono text-xs text-muted mt-1 w-6 shrink-0">02</span>
               <div>
-                <strong className="text-ink font-medium text-base block mb-1">Unmatched UPI names</strong>
+                <strong className="text-ink font-medium text-base block mb-1">Unmatched payer names</strong>
                 <p className="text-muted">
-                  Customers frequently pay from a spouse or family member UPI ID that does not match the name entered on the delivery address.
+                  Customers frequently pay from a spouse or family member account that does not match the name entered on the delivery address.
                 </p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export default function LandingPage() {
               <div>
                 <strong className="text-ink font-medium text-base block mb-1">Chasing screenshots</strong>
                 <p className="text-muted">
-                  Store owners spend hours texting customers for payment screenshots and UTR numbers, delaying fulfillment and confusing customers.
+                  Store owners spend hours texting customers for payment screenshots and reference numbers, delaying fulfillment and confusing customers.
                 </p>
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function LandingPage() {
               The Reality of Indian Social Selling
             </div>
             <p className="font-display text-xl sm:text-2xl font-normal text-ink leading-relaxed italic">
-              &ldquo;Every evening around 8 PM, I sit with WhatsApp open on my laptop and GPay on my phone, trying to match timestamps. When two customers pay ₹499 in the same hour, UPI only gives me a bank reference number. I have to message both: &lsquo;Did you pay just now?&rsquo; and wait for screenshots before packing the box.&rdquo;
+              &ldquo;Every evening around 8 PM, I sit with WhatsApp open on my laptop and payment alerts on my phone, trying to match timestamps. When two customers pay ₹499 in the same hour, the bank notification only gives me a reference number. I have to message both: &lsquo;Did you pay just now?&rsquo; and wait for screenshots before packing the box.&rdquo;
             </p>
             <footer className="flex items-center gap-3 text-xs font-mono pt-1 text-muted">
               <span className="w-8 h-[1px] bg-line inline-block" />
@@ -205,14 +205,14 @@ export default function LandingPage() {
             <div>
               <div className="text-ink font-bold text-base mb-1.5">Built for privacy</div>
               <p className="text-xs text-muted leading-relaxed">
-                Customer UPI IDs are securely hashed with SHA-256 so raw payment identifiers are never exposed or stored in plain text.
+                Customer account identifiers are securely hashed with SHA-256 so raw payment details are never exposed or stored in plain text.
               </p>
             </div>
 
             <div>
               <div className="text-ink font-bold text-base mb-1.5">Global minor-unit architecture</div>
               <p className="text-xs text-muted leading-relaxed">
-                All amounts are stored in integer minor units (paise, cents, pence) — the deterministic ledger math is universally portable to Brazil Pix, Singapore PayNow, and US Zelle.
+                All amounts are stored in integer minor units (paise, cents, pence) — the deterministic ledger math is universally portable across payment methods.
               </p>
             </div>
           </div>
@@ -224,7 +224,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <BrandWordmark size="sm" />
-            <span className="text-muted">: UPI payment reconciliation</span>
+            <span className="text-muted">: Payment identity resolution</span>
           </div>
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="hover:text-ink transition-colors">

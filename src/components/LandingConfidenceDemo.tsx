@@ -90,7 +90,7 @@ export default function LandingConfidenceDemo() {
           <div className="flex items-baseline justify-between pb-4 mb-4 border-b border-line">
             <div>
               <div className="font-display text-3xl font-bold tracking-tight text-ink">₹499.00</div>
-              <div className="text-xs font-mono text-muted mt-0.5">UPI received · 2 orders with this price</div>
+              <div className="text-xs font-mono text-muted mt-0.5">Payment received · 2 orders with this price</div>
             </div>
             <div
               className={`text-xs font-mono font-medium px-2.5 py-1 rounded transition-colors border ${
