@@ -8,10 +8,6 @@ interface PresetScenario {
   title: string;
   amount: string;
   subtitle: string;
-  method: "upi" | "card";
-  vpa?: string;
-  cardLast4?: string;
-  cardNetwork?: string;
   tag: string;
   description: string;
   expectedOutcome: string;
@@ -19,46 +15,28 @@ interface PresetScenario {
 
 const PRESETS: PresetScenario[] = [
   {
-    id: "kurta_collision_priya",
-    title: "UPI: Priya Sharma",
+    id: "kurta_collision",
+    title: "2-Way Collision",
     amount: "499.00",
-    subtitle: "Blue Kurta (₹499)",
-    method: "upi",
-    vpa: "priya.sharma@okhdfcbank",
-    tag: "UPI Collision",
-    description: "Two orders share ₹499. Paying with Priya's UPI matches past customer history.",
-    expectedOutcome: "Payer VPA hash matches Priya Sharma record (+35% score boost -> auto-resolves to Blue Kurta).",
-  },
-  {
-    id: "kurta_collision_aman",
-    title: "UPI: Aman Verma",
-    amount: "499.00",
-    subtitle: "Red Kurta (₹499)",
-    method: "upi",
-    vpa: "aman.verma@okaxis",
-    tag: "UPI Collision",
-    description: "Two orders share ₹499. Paying with Aman's UPI matches past customer history.",
-    expectedOutcome: "Payer VPA hash matches Aman Verma record (+35% score boost -> auto-resolves to Red Kurta).",
+    subtitle: "Blue Kurta vs Red Kurta",
+    tag: "Collision Pool",
+    description: "Two pending orders share the exact same ₹499 price.",
+    expectedOutcome: "Tests tie-breaking logic and single-turn customer clarification.",
   },
   {
     id: "yoga_unique",
-    title: "UPI: Single Match",
+    title: "Single Match",
     amount: "799.00",
     subtitle: "Yoga Mat - Black",
-    method: "upi",
-    vpa: "neha.gupta@paytm",
     tag: "Clean Match",
-    description: "One single pending order exists in catalog with this exact price.",
+    description: "One single pending order exists in the catalog with this price.",
     expectedOutcome: "Exact price and timing match triggers swift auto-match or 1-tap confirmation.",
   },
   {
     id: "card_payment",
-    title: "Card: Visa Proxy",
+    title: "Card Payment",
     amount: "649.00",
     subtitle: "Green Kurta (₹649)",
-    method: "card",
-    cardLast4: "4242",
-    cardNetwork: "Visa",
     tag: "Card Proxy",
     description: "Card payment with no VPA, using Card Network + Last-4 as identity proxy.",
     expectedOutcome: "Card Last-4 + Network proxy matches customer record (+35% score boost).",
@@ -68,10 +46,8 @@ const PRESETS: PresetScenario[] = [
     title: "Unmatched Amount",
     amount: "1250.00",
     subtitle: "Unknown Amount",
-    method: "upi",
-    vpa: "unknown@okicici",
     tag: "Zero-Guessing",
-    description: "No pending orders in catalog share this price.",
+    description: "No pending orders in the catalog share this price.",
     expectedOutcome: "Zero matching candidates safely routed to Needs Review queue without guessing.",
   },
 ];
@@ -91,10 +67,8 @@ function loadRazorpayScript(): Promise<boolean> {
 
 export default function CreatePaymentLinkModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedPreset, setSelectedPreset] = useState<string>("kurta_collision_priya");
-  const [paymentMethod, setPaymentMethod] = useState<"upi" | "card">("upi");
+  const [selectedPreset, setSelectedPreset] = useState<string>("kurta_collision");
   const [rupees, setRupees] = useState("499");
-  const [payerVpa, setPayerVpa] = useState("priya.sharma@okhdfcbank");
   const [description, setDescription] = useState("Kisne Bheja Live Test Payment");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,8 +82,6 @@ export default function CreatePaymentLinkModal() {
     if (loading) return;
     setSelectedPreset(preset.id);
     setRupees(preset.amount.replace(",", ""));
-    setPaymentMethod(preset.method);
-    if (preset.vpa) setPayerVpa(preset.vpa);
     setDescription(`Test Payment: ${preset.title} (₹${preset.amount})`);
   }
 
@@ -120,8 +92,6 @@ export default function CreatePaymentLinkModal() {
 
     const targetPreset = directPreset || PRESETS.find((p) => p.id === selectedPreset);
     const targetRupees = directPreset ? directPreset.amount.replace(",", "") : rupees;
-    const targetMethod = directPreset ? directPreset.method : paymentMethod;
-    const targetVpa = directPreset ? directPreset.vpa : payerVpa;
     const targetDesc = directPreset
       ? `Test Payment: ${directPreset.title} (₹${directPreset.amount})`
       : description;
@@ -141,7 +111,6 @@ export default function CreatePaymentLinkModal() {
         body: JSON.stringify({
           amount: amountPaise,
           description: targetDesc.trim() || "Kisne Bheja Test Payment",
-          customerVpa: targetMethod === "upi" ? targetVpa?.trim() : undefined,
         }),
       });
 
@@ -156,51 +125,11 @@ export default function CreatePaymentLinkModal() {
           name: "Kisne Bheja Store",
           description: targetDesc,
           prefill: {
-            vpa: targetMethod === "upi" ? targetVpa : undefined,
             contact: "9876543210",
             email: "merchant.test@kisnebheja.in",
           },
           theme: {
             color: "#1B1D22",
-          },
-          method: {
-            upi: true,
-            card: true,
-            netbanking: true,
-            wallet: true,
-          },
-          config: {
-            display: {
-              blocks: {
-                upi: {
-                  name: "Pay using UPI (QR, GPay, PhonePe, Paytm, UPI ID)",
-                  instruments: [
-                    {
-                      method: "upi",
-                      flows: ["qr", "intent", "collect"],
-                    },
-                  ],
-                },
-                other: {
-                  name: "Cards & Other Payment Modes",
-                  instruments: [
-                    {
-                      method: "card",
-                    },
-                    {
-                      method: "netbanking",
-                    },
-                    {
-                      method: "wallet",
-                    },
-                  ],
-                },
-              },
-              sequence: ["block.upi", "block.other"],
-              preferences: {
-                show_default_blocks: true,
-              },
-            },
           },
           modal: {
             ondismiss: function () {
@@ -248,7 +177,7 @@ export default function CreatePaymentLinkModal() {
         }}
         className="text-xs font-mono px-3.5 py-2 rounded-lg border border-line bg-paper text-ink hover:border-ink hover:text-ink transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-[0.98] font-semibold tracking-tight flex items-center gap-1.5"
       >
-        <span>Test Payment (Razorpay UPI &amp; Cards)</span>
+        <span>Test Payment (Razorpay)</span>
       </button>
 
       {isOpen && (
@@ -260,11 +189,11 @@ export default function CreatePaymentLinkModal() {
                 <h3 className="font-display font-bold text-lg text-ink tracking-tight flex items-center gap-2">
                   <span>Open Razorpay Checkout</span>
                   <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    Direct Screen
+                    Test Mode
                   </span>
                 </h3>
                 <p className="text-xs text-muted font-body mt-1">
-                  Select a test scenario and open the official Razorpay checkout screen to pay with UPI or Card.
+                  Select a test scenario and open the official Razorpay checkout screen to complete payment.
                 </p>
               </div>
               <button
@@ -327,7 +256,7 @@ export default function CreatePaymentLinkModal() {
                               </span>
                             </div>
                             <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-ink/5 border border-line text-muted font-semibold">
-                              {preset.method}
+                              {preset.tag}
                             </span>
                           </div>
                           <p className="text-[11px] text-muted leading-snug line-clamp-2 mt-1">
@@ -358,34 +287,8 @@ export default function CreatePaymentLinkModal() {
                 <div className="pt-3 border-t border-line space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-mono font-bold uppercase tracking-wider text-muted">
-                      Custom Parameters
+                      Payment Parameters
                     </label>
-                    <div className="inline-flex rounded-lg border border-line p-0.5 bg-paper font-mono text-xs">
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => setPaymentMethod("upi")}
-                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium disabled:opacity-50 ${
-                          paymentMethod === "upi"
-                            ? "bg-ink text-paper font-bold shadow-2xs"
-                            : "text-muted hover:text-ink"
-                        }`}
-                      >
-                        UPI
-                      </button>
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => setPaymentMethod("card")}
-                        className={`px-2.5 py-1 rounded-md transition-all cursor-pointer font-medium disabled:opacity-50 ${
-                          paymentMethod === "card"
-                            ? "bg-ink text-paper font-bold shadow-2xs"
-                            : "text-muted hover:text-ink"
-                        }`}
-                      >
-                        Card
-                      </button>
-                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -414,45 +317,26 @@ export default function CreatePaymentLinkModal() {
                       </div>
                     </div>
 
-                    {paymentMethod === "upi" ? (
-                      <div>
-                        <label className="block text-[11px] font-mono text-muted mb-1 font-medium">
-                          Payer UPI ID
-                        </label>
-                        <input
-                          type="text"
-                          disabled={loading}
-                          value={payerVpa}
-                          onChange={(e) => {
-                            setPayerVpa(e.target.value);
-                            setSelectedPreset("");
-                          }}
-                          placeholder="e.g. priya.sharma@okhdfcbank"
-                          className="w-full font-mono text-xs px-3 py-2.5 bg-paper border border-line rounded-lg text-ink focus:outline-none focus:border-ink transition-colors disabled:opacity-60"
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="block text-[11px] font-mono text-muted mb-1 font-medium">
-                          Description
-                        </label>
-                        <input
-                          type="text"
-                          disabled={loading}
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Payment description"
-                          className="w-full font-mono text-xs px-3 py-2.5 bg-paper border border-line rounded-lg text-ink focus:outline-none focus:border-ink transition-colors disabled:opacity-60"
-                        />
-                      </div>
-                    )}
+                    <div>
+                      <label className="block text-[11px] font-mono text-muted mb-1 font-medium">
+                        Description
+                      </label>
+                      <input
+                        type="text"
+                        disabled={loading}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Payment description"
+                        className="w-full font-mono text-xs px-3 py-2.5 bg-paper border border-line rounded-lg text-ink focus:outline-none focus:border-ink transition-colors disabled:opacity-60"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 {/* Actions Footer */}
                 <div className="pt-4 flex items-center justify-between gap-2.5 border-t border-line">
                   <div className="text-[11px] font-mono text-muted">
-                    Test Mode (Real Razorpay Screen)
+                    Test Mode (Standard Razorpay Checkout)
                   </div>
 
                   <div className="flex items-center gap-2">
