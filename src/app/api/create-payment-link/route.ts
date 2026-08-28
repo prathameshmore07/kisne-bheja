@@ -7,12 +7,13 @@ export async function POST(req: NextRequest) {
     const amount = body.amount;
     const description = body.description ?? "Kisne Bheja test payment";
     const orderId = body.orderId as string | undefined;
+    const customerVpa = body.customerVpa as string | undefined;
 
     if (!amount || typeof amount !== "number") {
       return NextResponse.json({ error: "amount (in paise) is required" }, { status: 400 });
     }
 
-    const link = await createPaymentLink({ amount, description, orderId });
+    const link = await createPaymentLink({ amount, description, orderId, customerVpa });
     return NextResponse.json(link);
   } catch (err: any) {
     console.error("Razorpay payment link creation error:", err);
