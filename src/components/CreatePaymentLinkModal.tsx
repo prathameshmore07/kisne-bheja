@@ -163,6 +163,45 @@ export default function CreatePaymentLinkModal() {
           theme: {
             color: "#1B1D22",
           },
+          method: {
+            upi: true,
+            card: true,
+            netbanking: true,
+            wallet: true,
+          },
+          config: {
+            display: {
+              blocks: {
+                upi: {
+                  name: "Pay using UPI (QR, GPay, PhonePe, Paytm, UPI ID)",
+                  instruments: [
+                    {
+                      method: "upi",
+                      flows: ["qr", "intent", "collect"],
+                    },
+                  ],
+                },
+                other: {
+                  name: "Cards & Other Payment Modes",
+                  instruments: [
+                    {
+                      method: "card",
+                    },
+                    {
+                      method: "netbanking",
+                    },
+                    {
+                      method: "wallet",
+                    },
+                  ],
+                },
+              },
+              sequence: ["block.upi", "block.other"],
+              preferences: {
+                show_default_blocks: true,
+              },
+            },
+          },
           modal: {
             ondismiss: function () {
               setIsOpen(false);
