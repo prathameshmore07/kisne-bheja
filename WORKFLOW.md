@@ -24,19 +24,16 @@ Kisne Bheja (*"Who sent this payment?"*) is an intelligent payment reconciliatio
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ Stage 1: Dashboard Empty State / Active Ledger Overview     │
+│ Stage 1: Dashboard Overview & Pending Orders Catalog        │
 └──────────────────────────────┬──────────────────────────────┘
                                │
-                 ┌─────────────┴─────────────┐
-                 ▼                           ▼
-┌────────────────────────────────┐ ┌────────────────────────────────┐
-│ Stage 2A: Real Razorpay Webhook│ │ Stage 2B: Simulated Payment    │
-│ (HMAC signature verified)      │ │ (⚡ Offline Test Ingestion)    │
-└────────────────┬───────────────┘ └────────────────┬───────────────┘
-                 │                                  │
-                 └─────────────────┬────────────────┘
-                                   │  (Unified Pipeline Convergence)
-                                   ▼
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│ Stage 2: Mandatory Razorpay Webhook Ingestion (HMAC SHA-256)│
+│ (Single entry point — verified payment.captured / paid)     │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ Stage 3: Candidate Identification (Pending Orders Query)    │
 └──────────────────────────────┬──────────────────────────────┘
@@ -112,35 +109,23 @@ Kisne Bheja (*"Who sent this payment?"*) is an intelligent payment reconciliatio
 ---
 
 ### Stage 1 — Entering the Dashboard & Empty State (`/dashboard`)
-* **Empty State**: When no transactions exist, the dashboard clearly informs the merchant: *"No payments in ledger yet. Kisne Bheja is listening for incoming payments. You can either make a test payment via Razorpay, or click '⚡ Simulate Payment' to test the matching pipeline offline."*
+* **Empty State**: When no transactions exist, the dashboard clearly informs the merchant: *"No payments in ledger yet. Kisne Bheja is listening for incoming Razorpay webhooks. Generate a payment link using 'Test Payment (Razorpay)' above and complete payment in Razorpay test mode to trigger the reconciliation pipeline."*
 * **Actions Available**:
-  - `⚡ Simulate Payment`: Launches instant offline simulation modal.
+  - `Test Payment (Razorpay)`: Calls `razorpay.paymentLink.create` via `/api/create-payment-link` and presents the merchant with the live checkout URL (`short_url`) to pay using test credentials.
   - `+ New Order`: Manually creates pending orders with SHA-256 hashed customer VPAs.
   - `⚙ Settings`: Configures auto-match thresholds ($70\%–95\%$) and review floors ($40\%–75\%$).
   - `Export CSV ↓`: Downloads real-time reconciled ledger.
 
 ---
 
-### Stage 2 — Ingestion Convergence: Real vs. Simulated Path
+### Stage 2 — Ingestion: Real Razorpay Webhook Gateway (`/api/webhook`)
 
-Both entry paths converge immediately upon database write and are **completely indistinguishable** to all downstream scoring, clarification, and resolution stages.
-
-#### Path 2A: Real Razorpay Webhook (`/api/webhook`)
+Razorpay test-mode is the single, non-bypassable entry point for every payment record:
 1. Receives `payment.captured` or `payment_link.paid` payload.
-2. Verifies HMAC SHA-256 signature using `process.env.RAZORPAY_WEBHOOK_SECRET`.
-3. Performs idempotency check on `razorpay_payment_id`.
-4. Writes payment record and logs `webhook_received` audit entry.
-
-#### Path 2B: Network-Independent Simulation (`/api/payments/simulate`)
-1. Merchant triggers `⚡ Simulate Payment` modal or test runner calls POST `/api/payments/simulate` with `{ amount, payer_vpa }`.
-2. Generates synthetic `sim_pay_*` identifier.
-3. Writes payment record and logs `payment_simulated` audit entry.
-4. Directly invokes the identical downstream pipeline:
-   ```ts
-   await runMatchingEngine(payment.id, paymentLinkOrderId);
-   await maybeSendClarification(payment.id);
-   await resolveBatchesForPendingAmbiguity();
-   ```
+2. Verifies HMAC SHA-256 signature strictly using `process.env.RAZORPAY_WEBHOOK_SECRET`. Rejects invalid or unsigned requests with HTTP 400.
+3. Performs idempotency check on `razorpay_payment_id` (acknowledges retries without duplicate records).
+4. Handles `payment.failed` events by logging an audit entry without creating a phantom payment row.
+5. Ingests payment via `createPaymentFromWebhook` and invokes the automated reconciliation engine.
 
 ---
 
@@ -152,17 +137,18 @@ Both entry paths converge immediately upon database write and are **completely i
 ---
 
 ### Stage 4 — Deterministic Evidence Scoring (`scorer.ts`)
-Each candidate order is evaluated across 5 explainable, mathematical signals:
-1. **`amount_match`**: Base weight inversely decayed by collision pool size ($\Delta = +0.85$ for unique match, $+0.45$ for 3+ candidates).
-2. **`timing`**: Exponential decay over elapsed minutes between order placement and payment arrival ($\Delta = +0.02$ to $+0.28$).
-3. **`payer_history`**: Privacy-safe SHA-256 hash match against past customer VPAs ($\Delta = +0.35$ on match, $-0.20$ on conflicting payer).
-4. **`order_age`**: Decay penalty if order has been pending for days ($\Delta = -0.15$).
-5. **`link_metadata`**: Explicit confirmation if payment arrived through a link created specifically for that order ($\Delta = +0.50$).
+Each candidate order is evaluated across explainable, mathematical signals:
+1. **`amount_match`**: Base weight inversely decayed by collision pool size ($\Delta = +0.85$ for unique match, $+0.45$ for 2+ candidates).
+2. **`timing`**: Exponential decay over elapsed minutes between order placement and payment arrival ($\Delta = +0.02$ to $+0.25$).
+3. **`payer_history`**: Privacy-safe SHA-256 hash match against past customer VPAs ($\Delta = +0.35$ on match, $0.0$ neutral for unknown payers).
+4. **`card_proxy`**: Card Network + Last-4 digits identity proxy match ($\Delta = +0.35$).
+5. **`order_age`**: Decay penalty if order has been pending for days ($\Delta = -0.10$).
+6. **`link_metadata`**: Explicit confirmation if payment arrived through a link created specifically for that order ($\Delta = +0.50$).
 
 ---
 
 ### Stage 5 — Joint Batch Resolution (`batchResolver.ts`)
-* Before finalizing individual payments, the system scans for pending payments of identical amounts arriving simultaneously.
+* Scans for pending ambiguous payments of identical amounts arriving in the same window.
 * Executes **Hungarian Maximum-Weight Bipartite Matching** across the payment-order graph.
 * Guarantees mutual exclusion: no two payments are ever assigned to the same order, and paired payments receive a joint resolution boost ($\Delta = +0.35$).
 
@@ -184,7 +170,7 @@ The highest candidate confidence score evaluates against strict policies:
 ---
 
 ### Stage 8 — Customer Reply Interpretation & Negative Propagation (`reply.ts`)
-1. Customer replies in casual text (e.g. *"haan blue kurta wala"*).
+1. Customer replies via inbound webhook or dashboard interface (e.g. *"haan blue kurta wala"*).
 2. Gemini extracts a structured Zod schema: `{ matched_order_hint, confidence_signal, reasoning }`.
 3. Validates that `matched_order_hint` exists in the real candidate list.
 4. **Positive Evidence**: Confirmed winner receives `conversation` boost ($\Delta = +0.45$).
@@ -202,14 +188,14 @@ The highest candidate confidence score evaluates against strict policies:
 ### Stage 10 — Resolution & Auto-Fulfillment Confirmation
 * Payment flips to `status = 'resolved'`, linking `resolved_order_id`.
 * The order status flips from `pending` to `resolved`, preventing any other payment from claiming it.
-* **Auto-Fulfillment Dispatch**: The engine automatically appends a confirmation message in the simulated chat and records an audit log entry:
+* **Auto-Fulfillment Dispatch**: The engine automatically appends a confirmation message in the chat and records an audit log entry:
   > *"Confirmed — your {product_name} is on its way, thanks {customer_name}!"*
 
 ---
 
 ### Stage 11 — Single Append-Only Audit Trail
-* Every event is immutably logged to the `audit_trail` table:
-  - `webhook_received` / `payment_simulated`
+* Every event is immutably logged to the `audit_log` table:
+  - `webhook_received`
   - `evidence_added` (with signal weights and score updates)
   - `clarification_sent`
   - `reply_interpreted`
@@ -226,11 +212,6 @@ The highest candidate confidence score evaluates against strict policies:
 
 ---
 
-### Stage 13 — Proof at Scale (`/dashboard/metrics` & `benchmarkEngine.ts`)
+### Stage 13 — Proof at Scale (`/dashboard/metrics` & `benchmark.ts`)
 * An automated suite of **100 synthetic payments across 130 collision orders** with known ground truth validates the entire pipeline.
-* **Results**:
-  - **100.0% Empirical Accuracy** (0 false matches).
-  - **20%** resolved instantly via deterministic scoring ($\Delta \ge 85\%$).
-  - **74%** resolved via customer WhatsApp clarification.
-  - **6%** safely held for merchant review when ambiguous.
-  - **0%** overconfidence error.
+* Clearly labeled as synthetic, reporting raw, unfabricated metrics.

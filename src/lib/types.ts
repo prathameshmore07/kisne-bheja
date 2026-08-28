@@ -14,7 +14,6 @@ export type SignalType =
 export type AuditActor = "system" | "gemini" | "merchant";
 export type AuditAction =
   | "webhook_received"
-  | "payment_simulated"
   | "evidence_added"
   | "clarification_sent"
   | "reply_interpreted"

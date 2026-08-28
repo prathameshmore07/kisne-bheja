@@ -1,10 +1,22 @@
-import { createPayment, getCandidateOrders, appendEvidence, getEvidenceForPayment } from "./repo";
+/**
+ * UNIT TEST: Database Repository & Evidence Ledger Operations
+ * 
+ * Purpose: Verifies internal CRUD queries, candidate discovery, and evidence appending
+ * in memory/unit isolation.
+ * 
+ * Note: This script tests isolated data layer logic and is not a proof of Razorpay integration.
+ * Live integration must be verified via real Razorpay test-mode transactions and webhooks.
+ */
+import { createPayment, getCandidateOrders, appendEvidence, getEvidenceForPayment, clearAllData } from "./repo";
 import { seedDatabase } from "./seed";
 
 async function run() {
+  console.log("=== Running isolated test: test-repo ===");
+  await clearAllData();
   await seedDatabase();
+
   const payment = await createPayment({ amount: 49900, payer_vpa_hash: "vpa_hash_test_customer" });
-  console.log("Created payment:", payment.id, payment.amount);
+  console.log("Created unit test payment:", payment.id, payment.amount);
 
   const candidates = await getCandidateOrders(payment.amount);
   console.log("Candidates found:", candidates.map(c => c.product_name));
@@ -20,6 +32,7 @@ async function run() {
     });
     console.log("Evidence:", await getEvidenceForPayment(payment.id));
   }
+  console.log("✅ test-repo completed successfully.\n");
 }
 
 run().catch(console.error);

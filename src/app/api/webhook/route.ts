@@ -25,12 +25,15 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("x-razorpay-signature");
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    // Strict HMAC verification when secret is configured and not a placeholder
-    if (secret && !secret.startsWith("xxxx") && !secret.startsWith("your_")) {
-      if (!signature || !verifySignature(rawBody, signature, secret)) {
-        console.warn("Invalid Razorpay webhook signature");
-        return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
-      }
+    // Strict, unconditional HMAC SHA-256 verification
+    if (!secret) {
+      console.error("Razorpay webhook processing rejected: RAZORPAY_WEBHOOK_SECRET is not configured");
+      return NextResponse.json({ error: "Webhook secret not configured on server" }, { status: 500 });
+    }
+
+    if (!signature || !verifySignature(rawBody, signature, secret)) {
+      console.warn("Razorpay webhook rejected: Invalid or missing HMAC signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
     let payload: any;

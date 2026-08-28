@@ -65,6 +65,7 @@ export async function generateClarificationMessage(
   try {
     const model = getModel();
     if (!model) {
+      console.log(`[Gemini Clarification] (API key not configured) -> Using template: "${fallbackMessage}"`);
       return { message: fallbackMessage };
     }
 
@@ -79,7 +80,7 @@ export async function generateClarificationMessage(
       candidates
     )}.
 ${langInstruction}
-Draft a concise, single-sentence WhatsApp clarification message asking the customer to confirm which item they purchased.
+Draft a concise, single-sentence clarification message asking the customer to confirm which item they purchased.
 Keep it natural, friendly, and under 25 words.
 
 Respond ONLY with valid JSON matching this schema:
@@ -90,10 +91,12 @@ Respond ONLY with valid JSON matching this schema:
     const result = await model.generateContent(prompt);
     const raw = result.response.text();
     const parsed = extractJson(raw);
-    return ClarificationSchema.parse(parsed);
+    const validated = ClarificationSchema.parse(parsed);
+    console.log(`[Gemini Clarification SUCCESS] Drafted: "${validated.message}"`);
+    return validated;
   } catch (err: any) {
     const msg = err?.message?.split("\n")[0] || String(err);
-    console.log(`[Gemini Clarification] ${msg} -> Using template.`);
+    console.log(`[Gemini Clarification FAILED: ${msg}] -> Using fallback template: "${fallbackMessage}"`);
     return { message: fallbackMessage };
   }
 }
@@ -132,7 +135,7 @@ export async function interpretCustomerReply(
           confidence_signal: 0.90,
           reasoning: `Deterministic fallback exact keyword match on "${c.product_name}"`,
         };
-        console.log(`[Deterministic Fallback] (${reason}) -> Matched "${c.product_name}" (${c.order_id}) with 90% confidence`);
+        console.log(`[Deterministic Fallback Matched Exact] (${reason}) -> Matched "${c.product_name}" (${c.order_id}) with 90% confidence`);
         return res;
       }
     }
@@ -155,7 +158,7 @@ export async function interpretCustomerReply(
               confidence_signal: 0.85,
               reasoning: `Deterministic fallback color synonym match (${enColor}) on "${c.product_name}"`,
             };
-            console.log(`[Deterministic Fallback] (${reason}) -> Matched synonym "${enColor}" for "${c.product_name}" (${c.order_id}) with 85% confidence`);
+            console.log(`[Deterministic Fallback Matched Synonym] (${reason}) -> Matched synonym "${enColor}" for "${c.product_name}" (${c.order_id}) with 85% confidence`);
             return res;
           }
         }
@@ -182,7 +185,7 @@ export async function interpretCustomerReply(
         confidence_signal: 0.85,
         reasoning: `Deterministic fallback keyword overlap match on "${bestCandidate.product_name}"`,
       };
-      console.log(`[Deterministic Fallback] (${reason}) -> Matched keyword overlap for "${bestCandidate.product_name}" (${bestCandidate.order_id}) with 85% confidence`);
+      console.log(`[Deterministic Fallback Matched Keyword] (${reason}) -> Matched keyword overlap for "${bestCandidate.product_name}" (${bestCandidate.order_id}) with 85% confidence`);
       return res;
     }
 
@@ -191,7 +194,7 @@ export async function interpretCustomerReply(
       confidence_signal: 0,
       reasoning: "Deterministic fallback found no matching product keywords in customer reply",
     };
-    console.log(`[Deterministic Fallback] (${reason}) -> No keyword match for reply "${customerMessage}"`);
+    console.log(`[Deterministic Fallback No Match] (${reason}) -> No keyword match for reply "${customerMessage}"`);
     return res;
   }
 
@@ -229,7 +232,7 @@ Respond ONLY with valid JSON matching this schema:
     return validated;
   } catch (err: any) {
     const msg = err?.message?.split("\n")[0] || String(err);
-    console.log(`[Gemini Interpretation Notice] ${msg} -> Falling back to deterministic keyword matcher.`);
+    console.log(`[Gemini Call FAILED: ${msg}] -> Falling back to deterministic keyword matcher.`);
     return runFallback(`Gemini API notice: ${msg}`);
   }
 }
@@ -242,7 +245,10 @@ export async function summarizeEvidenceForMerchant(
   const fallback = `Matched "${productName}" with ${Math.round(confidence * 100)}% confidence based on ${signals.join(", ")}.`;
   try {
     const model = getModel();
-    if (!model) return fallback;
+    if (!model) {
+      console.log(`[Gemini Summary] (No API key) -> Fallback summary: "${fallback}"`);
+      return fallback;
+    }
     const prompt = `Summarize this payment resolution in one clear sentence for a merchant dashboard.
 Candidate order: ${productName}
 Confidence: ${(confidence * 100).toFixed(0)}%
@@ -254,8 +260,12 @@ Respond ONLY with valid JSON:
 }`;
     const result = await model.generateContent(prompt);
     const parsed = extractJson(result.response.text());
-    return SummarySchema.parse(parsed).summary;
-  } catch {
+    const validated = SummarySchema.parse(parsed);
+    console.log(`[Gemini Summary SUCCESS] -> "${validated.summary}"`);
+    return validated.summary;
+  } catch (err: any) {
+    const msg = err?.message?.split("\n")[0] || String(err);
+    console.log(`[Gemini Summary FAILED: ${msg}] -> Fallback summary: "${fallback}"`);
     return fallback;
   }
 }
@@ -273,7 +283,10 @@ export async function explainEvidence(
 
   try {
     const model = getModel();
-    if (!model) return { explanation: fallback };
+    if (!model) {
+      console.log(`[Gemini Explain] (No API key) -> Fallback explanation: "${fallback}"`);
+      return { explanation: fallback };
+    }
 
     const prompt = `You are an evidence explanation engine for a fintech reconciliation ledger.
 Explain why this candidate order has its current score based on the following recorded evidence signals:
@@ -287,9 +300,12 @@ Respond ONLY with valid JSON:
 
     const result = await model.generateContent(prompt);
     const parsed = extractJson(result.response.text());
-    return { explanation: parsed.explanation ?? fallback };
-  } catch (err) {
-    console.warn("Gemini explain evidence error (using fallback):", err);
+    const explanation = parsed.explanation ?? fallback;
+    console.log(`[Gemini Explain SUCCESS] -> "${explanation}"`);
+    return { explanation };
+  } catch (err: any) {
+    const msg = err?.message?.split("\n")[0] || String(err);
+    console.log(`[Gemini Explain FAILED: ${msg}] -> Fallback explanation: "${fallback}"`);
     return { explanation: fallback };
   }
 }

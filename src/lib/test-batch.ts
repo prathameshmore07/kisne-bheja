@@ -1,8 +1,18 @@
-import { createPayment, getPaymentById, getOrderById } from "./repo";
+/**
+ * UNIT TEST: Ambiguity Batch Resolver Sweep
+ * 
+ * Purpose: Verifies resolveBatchesForPendingAmbiguity across simultaneous collision clusters.
+ */
+import { createPayment, getPaymentById, getOrderById, clearAllData } from "./repo";
 import { runMatchingEngine } from "./matcher";
 import { resolveBatchesForPendingAmbiguity } from "./batchResolver";
+import { seedDatabase } from "./seed";
 
 async function main() {
+  console.log("=== Running isolated test: test-batch ===");
+  await clearAllData();
+  await seedDatabase();
+
   const paymentA = await createPayment({ amount: 49900 });
   const paymentB = await createPayment({ amount: 49900 });
 
@@ -24,6 +34,7 @@ async function main() {
   console.log(`\nPayment A -> ${orderA}`);
   console.log(`Payment B -> ${orderB}`);
   console.log(orderA !== orderB ? "PASS: distinct orders assigned" : "FAIL: same order assigned to both");
+  console.log("✅ test-batch completed successfully.\n");
 }
 
 main().catch(console.error);

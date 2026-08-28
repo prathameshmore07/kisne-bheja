@@ -315,35 +315,6 @@ export async function createPaymentFromWebhook(input: {
   return payment;
 }
 
-export async function createSimulatedPayment(input: {
-  amount: number;
-  payer_vpa_hash?: string;
-  payment_method?: "upi" | "card" | "netbanking" | "wallet";
-  payer_card_last4?: string;
-  payer_card_network?: string;
-  razorpay_payment_id?: string;
-}): Promise<Payment> {
-  const simulatedId = input.razorpay_payment_id || `sim_pay_${Math.random().toString(36).substring(2, 11)}`;
-  const velocity = await checkPaymentVelocity(input.amount, 60);
-  const payment = await createPayment({
-    razorpay_payment_id: simulatedId,
-    amount: input.amount,
-    payer_vpa_hash: input.payer_vpa_hash,
-    payment_method: input.payment_method ?? (input.payer_card_last4 ? "card" : "upi"),
-    payer_card_last4: input.payer_card_last4,
-    payer_card_network: input.payer_card_network,
-    is_velocity_spike: velocity.is_spike,
-    velocity_count: velocity.count + 1,
-  });
-  await addAudit({
-    payment_id: payment.id,
-    action: "payment_simulated",
-    actor: "system",
-    detail: `Simulated test payment of ₹${(input.amount / 100).toFixed(2)} created (${input.payment_method || "UPI"})${velocity.is_spike ? ` [⚠️ High velocity spike: ${velocity.count + 1} payments in 1h]` : ""}`,
-  });
-  return payment;
-}
-
 export async function getPaymentById(id: string): Promise<Payment | undefined> {
   const supabase = getSupabaseServer();
   const { data, error } = await supabase.from("payments").select("*").eq("id", id).maybeSingle();
@@ -546,8 +517,7 @@ export async function addAudit(entry: {
   // Safe mapping for Postgres enum constraints
   let dbAction = entry.action as string;
   if (!ALLOWED_DB_ACTIONS.has(dbAction)) {
-    if (dbAction === "payment_simulated") dbAction = "webhook_received";
-    else if (dbAction === "approved") dbAction = "auto_resolved";
+    if (dbAction === "approved") dbAction = "auto_resolved";
     else if (dbAction === "reply_interpreted") dbAction = "clarification_sent";
     else if (dbAction === "batch_assignment") dbAction = "batch_resolved";
     else dbAction = "manual_review";

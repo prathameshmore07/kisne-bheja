@@ -1,4 +1,12 @@
-import { createPayment, getCandidateOrders } from "./repo";
+/**
+ * UNIT TEST: Deterministic Scorer & Mathematical Signal Calculation
+ * 
+ * Purpose: Tests pure additive scoring logic, timing decay, collision pool scaling,
+ * and privacy-preserving VPA/card proxy match in isolation.
+ * 
+ * Note: This script tests isolated internal scoring functions.
+ */
+import { createPayment, getCandidateOrders, clearAllData } from "./repo";
 import { hashVpa } from "./hash";
 import { seedDatabase } from "./seed";
 import {
@@ -11,7 +19,10 @@ import {
 } from "./scorer";
 
 async function run() {
+  console.log("=== Running isolated test: test-scorer ===");
+  await clearAllData();
   await seedDatabase();
+
   const payment = await createPayment({ amount: 49900, payer_vpa_hash: hashVpa("priya.sharma@okhdfcbank") });
   const allCandidates = await getCandidateOrders(payment.amount);
   const candidates = allCandidates.filter((o) => o.amount === payment.amount);
@@ -55,10 +66,11 @@ async function run() {
   }
 
   const best = await getBestCandidate(payment.id);
-  console.log("Best candidate:", best);
+  console.log("Best candidate:", best?.order?.product_name, "Confidence:", best?.confidence);
   if (best) {
     console.log("Action:", determineAction(best.confidence));
   }
+  console.log("✅ test-scorer completed successfully.\n");
 }
 
 run().catch(console.error);

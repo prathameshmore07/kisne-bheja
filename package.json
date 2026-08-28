@@ -23,7 +23,8 @@
     "test-batch-resolver": "tsx src/lib/test-batch-resolver.ts",
     "test-batch": "tsx src/lib/test-batch.ts",
     "test-new-features": "tsx src/lib/test-new-features.ts",
-    "test-all": "npm run seed && npm run test-repo && npm run test-scorer && npm run test-matcher && npm run test-audit && npm run test-gemini && npm run test-clarification && npm run test-reply-interpret && npm run test-resolution",
+    "test-all": "npm run test-repo && npm run test-scorer && npm run test-matcher && npm run test-audit && npm run test-webhook && npm run test-gemini && npm run test-clarification && npm run test-reply-interpret && npm run test-resolution && npm run test-merchant-actions && npm run test-failures && npm run test-batch-resolver && npm run test-batch && npm run test-new-features",
+    "create-link": "tsx src/lib/create-live-link.ts",
     "benchmark": "tsx src/lib/benchmark.ts"
   },
   "dependencies": {

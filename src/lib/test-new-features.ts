@@ -1,3 +1,10 @@
+/**
+ * UNIT TEST: Advanced Extension Features
+ * 
+ * Purpose: Verifies order confidence forecast, candidate evidence comparison,
+ * custom merchant rules, auto-expiry, velocity spike anomaly detection,
+ * card identity proxy, and weekly reporting.
+ */
 import {
   createOrder,
   createPayment,
@@ -8,6 +15,7 @@ import {
   createMerchantRule,
   getMerchantRules,
   deleteMerchantRule,
+  clearAllData,
 } from "./repo";
 import { runMatchingEngine } from "./matcher";
 import { getAllCandidateScores, scorePayerHistory } from "./scorer";
@@ -16,9 +24,10 @@ import { seedDatabase } from "./seed";
 
 async function main() {
   console.log("==================================================");
-  console.log("   TESTING NEW EXTENSION FEATURES END-TO-END      ");
+  console.log("   TESTING ADVANCED RECONCILIATION FEATURES       ");
   console.log("==================================================");
 
+  await clearAllData();
   await seedDatabase();
 
   // 1. Feature 1: Order "confidence forecast" at creation time
@@ -130,8 +139,8 @@ async function main() {
   }
 
   console.log("\n==================================================");
-  console.log("       ALL NEW FEATURES TESTED & VERIFIED!        ");
-  console.log("==================================================");
+  console.log("       ALL ADVANCED FEATURES TESTED & VERIFIED!   ");
+  console.log("==================================================\n");
 }
 
 main().catch(console.error);

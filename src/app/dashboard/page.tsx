@@ -12,7 +12,7 @@ import Link from "next/link";
 import BrandWordmark from "@/components/BrandWordmark";
 import DashboardPaymentList from "@/components/DashboardPaymentList";
 import NewOrderModal from "@/components/NewOrderModal";
-import SimulatePaymentModal from "@/components/SimulatePaymentModal";
+import CreatePaymentLinkModal from "@/components/CreatePaymentLinkModal";
 import MerchantSettingsModal from "@/components/MerchantSettingsModal";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
             <BrandWordmark size="md" />
           </Link>
           <div className="flex flex-wrap items-center gap-2">
-            <SimulatePaymentModal />
+            <CreatePaymentLinkModal />
             <NewOrderModal />
             <MerchantSettingsModal />
             <ThemeToggle />
