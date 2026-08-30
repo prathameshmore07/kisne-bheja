@@ -7,7 +7,7 @@
  * Note: This script tests isolated internal scoring functions.
  */
 import { createPayment, getCandidateOrders, clearAllData } from "./repo";
-import { hashVpa } from "./hash";
+import { hashPayerIdentity } from "./hash";
 import { seedDatabase } from "./seed";
 import {
   scoreAmountMatch,
@@ -23,7 +23,13 @@ async function run() {
   await clearAllData();
   await seedDatabase();
 
-  const payment = await createPayment({ amount: 49900, payer_vpa_hash: hashVpa("priya.sharma@okhdfcbank") });
+  const payment = await createPayment({
+    amount: 49900,
+    payer_identity_hash: hashPayerIdentity("1111_visa"),
+    payment_method: "card",
+    payer_card_last4: "1111",
+    payer_card_network: "Visa",
+  });
   const allCandidates = await getCandidateOrders(payment.amount);
   const candidates = allCandidates.filter((o) => o.amount === payment.amount);
   console.log("Candidates:", candidates.map((c) => c.product_name));
@@ -53,7 +59,7 @@ async function run() {
       });
     }
 
-    const payer = scorePayerHistory(payment.payer_vpa_hash, order.customer_vpa_hash);
+    const payer = scorePayerHistory(payment.payer_identity_hash, order.customer_identity_hash);
     if (payer) {
       await addEvidenceAndRecompute({
         payment_id: payment.id,

@@ -74,6 +74,7 @@ export default function NewOrderModal() {
           product_name: productName.trim(),
           amount: paise,
           customer_name: customerName.trim() || undefined,
+          customer_identity: customerVpa.trim() || undefined,
           customer_vpa: customerVpa.trim() || undefined,
           customer_card_last4: customerCardLast4.trim() || undefined,
           customer_card_network: customerCardLast4.trim() ? customerCardNetwork : undefined,
@@ -196,7 +197,7 @@ export default function NewOrderModal() {
 
               <div>
                 <label className="block text-xs font-mono text-muted uppercase tracking-wider mb-1">
-                  Customer UPI ID (Optional — hashed)
+                  Customer Identifier / UPI (Optional — hashed)
                 </label>
                 <input
                   type="text"

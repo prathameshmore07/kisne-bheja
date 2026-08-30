@@ -18,12 +18,14 @@ const paymentCardMap = new Map<string, { method?: "upi" | "card" | "netbanking" 
 // Helper to convert Postgres row with ISO timestamptz to internal model with unix ms timestamps
 function mapOrder(row: any): Order {
   const meta = orderCardMap.get(row.id);
+  const identityHash = row.customer_identity_hash ?? row.customer_vpa_hash ?? null;
   return {
     id: row.id,
     product_name: row.product_name,
     amount: row.amount,
     customer_name: row.customer_name ?? null,
-    customer_vpa_hash: row.customer_vpa_hash ?? null,
+    customer_identity_hash: identityHash,
+    customer_vpa_hash: identityHash,
     customer_card_last4: meta?.last4 ?? null,
     customer_card_network: meta?.network ?? null,
     status: row.status,
@@ -34,12 +36,14 @@ function mapOrder(row: any): Order {
 
 function mapPayment(row: any): Payment {
   const meta = paymentCardMap.get(row.id);
+  const identityHash = row.payer_identity_hash ?? row.payer_vpa_hash ?? null;
   return {
     id: row.id,
     razorpay_payment_id: row.razorpay_payment_id ?? null,
     razorpay_payment_link_id: row.razorpay_payment_link_id ?? null,
     amount: row.amount,
-    payer_vpa_hash: row.payer_vpa_hash ?? null,
+    payer_identity_hash: identityHash,
+    payer_vpa_hash: identityHash,
     payment_method: meta?.method ?? (meta?.last4 ? "card" : "upi"),
     payer_card_last4: meta?.last4 ?? null,
     payer_card_network: meta?.network ?? null,
@@ -96,6 +100,7 @@ export async function createOrder(input: {
   product_name: string;
   amount: number;
   customer_name?: string;
+  customer_identity_hash?: string;
   customer_vpa_hash?: string;
   customer_card_last4?: string;
   customer_card_network?: string;
@@ -104,11 +109,12 @@ export async function createOrder(input: {
   is_benchmark?: boolean;
 }): Promise<Order> {
   const supabase = getSupabaseServer();
+  const identityHash = input.customer_identity_hash ?? input.customer_vpa_hash ?? null;
   const insertPayload: any = {
     product_name: input.product_name,
     amount: input.amount,
     customer_name: input.customer_name ?? null,
-    customer_vpa_hash: input.customer_vpa_hash ?? null,
+    customer_identity_hash: identityHash,
     status: "pending",
     is_benchmark: input.is_benchmark ?? false,
   };
@@ -116,7 +122,15 @@ export async function createOrder(input: {
     insertPayload.created_at = new Date(input.created_at).toISOString();
   }
 
-  const { data, error } = await supabase.from("orders").insert(insertPayload).select().single();
+  let { data, error } = await supabase.from("orders").insert(insertPayload).select().single();
+  // Fallback if remote schema has customer_vpa_hash
+  if (error && (error.message?.includes("customer_identity_hash") || error.code === "PGRST204")) {
+    delete insertPayload.customer_identity_hash;
+    insertPayload.customer_vpa_hash = identityHash;
+    const retry = await supabase.from("orders").insert(insertPayload).select().single();
+    data = retry.data;
+    error = retry.error;
+  }
   if (error || !data) {
     throw new Error(`Failed to create order: ${error?.message}`);
   }
@@ -248,6 +262,7 @@ export async function createPayment(input: {
   razorpay_payment_id?: string;
   razorpay_payment_link_id?: string;
   amount: number;
+  payer_identity_hash?: string;
   payer_vpa_hash?: string;
   payment_method?: "upi" | "card" | "netbanking" | "wallet";
   payer_card_last4?: string;
@@ -258,11 +273,12 @@ export async function createPayment(input: {
   is_benchmark?: boolean;
 }): Promise<Payment> {
   const supabase = getSupabaseServer();
+  const identityHash = input.payer_identity_hash ?? input.payer_vpa_hash ?? null;
   const insertPayload: any = {
     razorpay_payment_id: input.razorpay_payment_id ?? null,
     razorpay_payment_link_id: input.razorpay_payment_link_id ?? null,
     amount: input.amount,
-    payer_vpa_hash: input.payer_vpa_hash ?? null,
+    payer_identity_hash: identityHash,
     status: "unresolved",
     confidence: 0,
     is_benchmark: input.is_benchmark ?? false,
@@ -271,7 +287,15 @@ export async function createPayment(input: {
     insertPayload.received_at = new Date(input.received_at).toISOString();
   }
 
-  const { data, error } = await supabase.from("payments").insert(insertPayload).select().single();
+  let { data, error } = await supabase.from("payments").insert(insertPayload).select().single();
+  // Fallback if remote schema has payer_vpa_hash
+  if (error && (error.message?.includes("payer_identity_hash") || error.code === "PGRST204")) {
+    delete insertPayload.payer_identity_hash;
+    insertPayload.payer_vpa_hash = identityHash;
+    const retry = await supabase.from("payments").insert(insertPayload).select().single();
+    data = retry.data;
+    error = retry.error;
+  }
   if (error || !data) {
     throw new Error(`Failed to create payment: ${error?.message}`);
   }
@@ -294,6 +318,7 @@ export async function createPaymentFromWebhook(input: {
   razorpay_payment_id: string;
   razorpay_payment_link_id?: string;
   amount: number;
+  payer_identity_hash?: string;
   payer_vpa_hash?: string;
   payment_method?: "upi" | "card" | "netbanking" | "wallet";
   payer_card_last4?: string;
@@ -310,7 +335,7 @@ export async function createPaymentFromWebhook(input: {
     payment_id: payment.id,
     action: "webhook_received",
     actor: "system",
-    detail: `Razorpay payment ${input.razorpay_payment_id} received — ₹${(input.amount / 100).toFixed(2)} (${input.payment_method || "UPI"})${velocity.is_spike ? ` [⚠️ High velocity spike: ${velocity.count + 1} payments in 1h]` : ""}`,
+    detail: `Razorpay payment ${input.razorpay_payment_id} received — ₹${(input.amount / 100).toFixed(2)} (${input.payment_method || "card"})${velocity.is_spike ? ` [⚠️ High velocity spike: ${velocity.count + 1} payments in 1h]` : ""}`,
   });
   return payment;
 }
@@ -773,7 +798,7 @@ export async function getMerchantRules(): Promise<MerchantRule[]> {
 
 export async function createMerchantRule(input: {
   rule_name: string;
-  condition_type: "customer_name" | "payer_vpa_hash" | "product_name" | "min_amount";
+  condition_type: "customer_name" | "payer_identity_hash" | "payer_vpa_hash" | "product_name" | "min_amount";
   condition_value: string;
   signal_weight: number;
   detail?: string;

@@ -5,7 +5,7 @@ import { apiSuccess, handleApiError } from "@/lib/apiResponse";
 
 const CreateRuleSchema = z.object({
   rule_name: z.string().min(1, "Rule name is required"),
-  condition_type: z.enum(["customer_name", "payer_vpa_hash", "product_name", "min_amount"]),
+  condition_type: z.enum(["customer_name", "payer_identity_hash", "payer_vpa_hash", "product_name", "min_amount"]),
   condition_value: z.string().min(1, "Condition value is required"),
   signal_weight: z.number().min(-1).max(1),
   detail: z.string().optional(),

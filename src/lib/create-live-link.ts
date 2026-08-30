@@ -31,9 +31,9 @@ async function main() {
     console.log("---------------------------------------------------------");
     console.log("How to test this live:");
     console.log("1. Open the checkout URL in your browser.");
-    console.log("2. Use standard Razorpay test credentials:");
-    console.log("   - Test UPI: success@razorpay (or any UPI handle)");
-    console.log("   - Test Card: 4111 2222 3333 4444 (Expiry: 12/28, CVV: 123)");
+    console.log("2. Use Razorpay's published test card (Primary demo method):");
+    console.log("   - Test Card: 4111 1111 1111 1111 (Expiry: any future date e.g. 12/28, CVV: 123)");
+    console.log("   - Alternatively, test netbanking (HDFC/SBIN) or wallet.");
     console.log("3. Complete the payment.");
     console.log("4. Razorpay will deliver a real webhook to /api/webhook,");
     console.log("   verifying HMAC signature and initiating automated matching.");

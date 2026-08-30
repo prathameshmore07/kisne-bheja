@@ -103,8 +103,8 @@ export default async function PaymentDetailPage({ params }: PageProps) {
             order_id: c.candidate_order_id,
             product_name: c.order?.product_name ?? "Unknown order",
             amount: c.order?.amount,
-            customer_name: c.order?.customer_name,
-            customer_vpa_hash: c.order?.customer_vpa_hash,
+            customer_identity_hash: c.order?.customer_identity_hash ?? c.order?.customer_vpa_hash,
+            customer_vpa_hash: c.order?.customer_identity_hash ?? c.order?.customer_vpa_hash,
             confidence: c.confidence,
             evidence: c.evidence,
           }))}

@@ -7,7 +7,7 @@ import {
 import { runMatchingEngine } from "@/lib/matcher";
 import { maybeSendClarification } from "@/lib/clarification";
 import { resolveBatchesForPendingAmbiguity } from "@/lib/batchResolver";
-import { hashVpa } from "@/lib/hash";
+import { hashPayerIdentity, extractPayerIdentifier } from "@/lib/hash";
 import { getRazorpay } from "@/lib/razorpay";
 
 export async function POST(req: NextRequest) {
@@ -30,11 +30,11 @@ export async function POST(req: NextRequest) {
 
     // 2. Fetch and verify payment directly from Razorpay server API
     let amount = clientAmount || 49900;
-    let rawVpa = clientVpa;
     let method: "card" | "upi" | "netbanking" | "wallet" = "card";
     let cardLast4: string | undefined = undefined;
     let cardNetwork: string | undefined = undefined;
     let paymentLinkOrderId: string | undefined = clientOrderId;
+    let rawIdentifier: string | undefined = clientVpa;
 
     const rzp = getRazorpay();
     if (rzp) {
@@ -42,12 +42,12 @@ export async function POST(req: NextRequest) {
         const paymentEntity: any = await rzp.payments.fetch(razorpayPaymentId);
         if (paymentEntity) {
           amount = paymentEntity.amount || amount;
-          rawVpa = paymentEntity.vpa || paymentEntity.customer?.vpa || rawVpa;
+          rawIdentifier = extractPayerIdentifier(paymentEntity) || rawIdentifier;
           const entityMethod = paymentEntity.method;
           if (entityMethod === "upi" || entityMethod === "card" || entityMethod === "netbanking" || entityMethod === "wallet") {
             method = entityMethod;
           } else {
-            method = rawVpa ? "upi" : "card";
+            method = paymentEntity.card ? "card" : paymentEntity.vpa ? "upi" : "card";
           }
           cardLast4 = paymentEntity.card?.last4 || cardLast4;
           cardNetwork = paymentEntity.card?.network || cardNetwork;
@@ -58,13 +58,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const payerVpaHash = rawVpa ? hashVpa(rawVpa) : undefined;
+    const payerIdentityHash = rawIdentifier ? hashPayerIdentity(rawIdentifier) : undefined;
 
     // 3. Ingest Payment into Database
     const payment = await createPaymentFromWebhook({
       razorpay_payment_id: razorpayPaymentId,
       amount,
-      payer_vpa_hash: payerVpaHash,
+      payer_identity_hash: payerIdentityHash,
       payment_method: method,
       payer_card_last4: cardLast4,
       payer_card_network: cardNetwork,

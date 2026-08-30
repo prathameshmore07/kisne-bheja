@@ -8,7 +8,7 @@ import {
 import { runMatchingEngine } from "@/lib/matcher";
 import { maybeSendClarification } from "@/lib/clarification";
 import { resolveBatchesForPendingAmbiguity } from "@/lib/batchResolver";
-import { hashVpa } from "@/lib/hash";
+import { hashPayerIdentity, extractPayerIdentifier } from "@/lib/hash";
 
 function verifySignature(body: string, signature: string, secret: string): boolean {
   try {
@@ -59,8 +59,9 @@ export async function POST(req: NextRequest) {
 
       const razorpayPaymentId = paymentEntity.id ?? "pay_unknown";
       const amount = paymentEntity.amount; // paise
-      const rawVpa = paymentEntity.vpa ?? paymentEntity.customer?.vpa;
-      const payerVpaHash = rawVpa ? hashVpa(rawVpa) : undefined;
+      const method = paymentEntity.method ?? (paymentEntity.card ? "card" : paymentEntity.vpa ? "upi" : "card");
+      const rawIdentifier = extractPayerIdentifier(paymentEntity);
+      const payerIdentityHash = rawIdentifier ? hashPayerIdentity(rawIdentifier) : undefined;
       const paymentLinkId =
         paymentEntity.payment_link_id ?? payload.payload?.payment_link?.entity?.id ?? undefined;
       const paymentLinkOrderId =
@@ -78,7 +79,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ status: "already_processed", payment_id: existing.id });
       }
 
-      const method = paymentEntity.method ?? (paymentEntity.vpa ? "upi" : "upi");
       const cardLast4 = paymentEntity.card?.last4 ?? undefined;
       const cardNetwork = paymentEntity.card?.network ?? undefined;
 
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         razorpay_payment_id: razorpayPaymentId,
         razorpay_payment_link_id: paymentLinkId ?? undefined,
         amount,
-        payer_vpa_hash: payerVpaHash,
+        payer_identity_hash: payerIdentityHash,
         payment_method: method,
         payer_card_last4: cardLast4,
         payer_card_network: cardNetwork,

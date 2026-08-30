@@ -15,7 +15,13 @@ async function run() {
   await clearAllData();
   await seedDatabase();
 
-  const payment = await createPayment({ amount: 49900, payer_vpa_hash: "vpa_hash_test_customer" });
+  const payment = await createPayment({
+    amount: 49900,
+    payer_identity_hash: "identity_hash_test_customer",
+    payment_method: "card",
+    payer_card_last4: "1111",
+    payer_card_network: "Visa",
+  });
   console.log("Created unit test payment:", payment.id, payment.amount);
 
   const candidates = await getCandidateOrders(payment.amount);

@@ -7,15 +7,15 @@
  * Note: Live end-to-end webhook verification requires sending genuinely signed payloads
  * or creating a live Razorpay test-mode transaction via `npm run create-link`.
  */
-import { hashVpa } from "./hash";
+import { hashPayerIdentity } from "./hash";
 import { createPaymentFromWebhook, getPaymentByRazorpayId, getAllPayments, clearAllData } from "./repo";
 import { runMatchingEngine } from "./matcher";
 import { seedDatabase } from "./seed";
 
 const razorpayPaymentId = "pay_test_idempotency_check_123";
 const amount = 49900;
-const rawVpa = "priya.sharma@oksbi";
-const payer_vpa_hash = hashVpa(rawVpa);
+const rawIdentifier = "1111_visa";
+const payer_identity_hash = hashPayerIdentity(rawIdentifier);
 
 async function processWebhookEvent(rzpId: string) {
   const existing = await getPaymentByRazorpayId(rzpId);
@@ -27,7 +27,10 @@ async function processWebhookEvent(rzpId: string) {
   const payment = await createPaymentFromWebhook({
     razorpay_payment_id: rzpId,
     amount,
-    payer_vpa_hash,
+    payer_identity_hash,
+    payment_method: "card",
+    payer_card_last4: "1111",
+    payer_card_network: "Visa",
   });
 
   try {

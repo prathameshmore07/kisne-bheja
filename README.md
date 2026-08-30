@@ -84,10 +84,10 @@ The Confidence Ledger evaluates each candidate pending order independently again
 | :--- | :--- | :--- |
 | `amount_match` | `+0.45` to `+0.85` | Exact amount match. Scales inversely with collision count ($+0.85$ for unique amount, $+0.45$ for 2 or more collisions). |
 | `timing` | `+0.02` to `+0.25` | Exponential decay based on elapsed time between order creation and payment arrival ($+0.25$ for $< 5$ min; $+0.15$ for $< 15$ min; $+0.05$ for $< 1$ hour). |
-| `payer_history` | `+0.35` | Privacy-preserving SHA-256 hash match against past customer VPA. Absence of history carries $0.0$ neutral weight (never penalized). |
-| `card_proxy` | `+0.35` | Card Network + Last-4 digits proxy match against customer profile when VPA is absent. |
+| `payer_history` | `+0.35` | Privacy-preserving SHA-256 hash match against customer profile (Card proxy last4+network, Netbanking bank code, Wallet ID, UPI VPA). Absence of history carries $0.0$ neutral weight (never penalized). |
+| `card_proxy` | `+0.35` | Card Network + Last-4 digits proxy match against customer profile. |
 | `link_metadata` | `+0.50` | Explicit order ID embedded in Razorpay payment link notes. |
-| `merchant_rule` | `+0.05` to `+0.30` | Merchant-defined conditional matching rule (customer name match, VPA match, product tag). |
+| `merchant_rule` | `+0.05` to `+0.30` | Merchant-defined conditional matching rule (customer name match, identity hash match, product tag). |
 | `conversation` | `+0.40` to `+0.45` | Customer reply confirmation parsed and validated via Zod schema, weighted by intent score. |
 | `batch_assignment` | `+0.35` | Mutual exclusion boost from joint Hungarian bipartite assignment across multi-payment collision clusters. |
 | `order_age` | `-0.10` | Stale order penalty applied when order creation exceeds 48 hours. |
@@ -120,9 +120,9 @@ Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard) to view 
 
 ### Step 4: Complete Payment in Razorpay Test Mode
 1. Click **"Open Checkout"** to navigate to the live Razorpay test-mode checkout page (`https://rzp.io/i/...`).
-2. Enter standard Razorpay test credentials:
-   - **Test UPI**: `success@razorpay` (or select any UPI simulator option).
-   - **Test Card**: `4111 2222 3333 4444` (Expiry: `12/28`, CVV: `123`).
+2. Use Razorpay's published test card (**Primary demo payment method**):
+   - **Test Card**: `4111 1111 1111 1111` (Expiry: any future date e.g. `12/28`, CVV: `123`).
+   - Alternatively, test netbanking (`HDFC` / `SBIN`) or wallet.
 3. Complete the payment.
 
 ### Step 5: Observe Live Reconciliation

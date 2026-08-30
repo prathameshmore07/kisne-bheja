@@ -11,13 +11,14 @@ import {
 import { runMatchingEngine } from "./matcher";
 import { maybeSendClarification } from "./clarification";
 import { processCustomerReply } from "./reply";
-import { hashVpa } from "./hash";
+import { hashPayerIdentity } from "./hash";
 
 interface GroundTruthPair {
   orderId: string;
   orderName: string;
   amount: number;
-  customerVpaHash: string;
+  customerIdentityHash: string;
+  customerVpaHash?: string;
   createdAt: number;
 }
 
@@ -90,13 +91,12 @@ async function generateSyntheticOrders(): Promise<GroundTruthPair[]> {
     { name: "Organic Forest Honey 500g", amount: 34900 },
     { name: "Handcrafted Jute Coasters", amount: 34900 },
     { name: "Cold-pressed Coconut Oil 250ml", amount: 34900 },
-
-    // Unique / single amount orders (clear cases)
-    { name: "Silver Anklet with Bells", amount: 249900 },
-    { name: "Brass Diya Aarti Set", amount: 59900 },
-    { name: "Aromatherapy Candle 3-Wick", amount: 64900 },
-    { name: "Leather Travel Wallet", amount: 89900 },
-    { name: "Copper Water Bottle 1L", amount: 109900 },
+    { name: "Copper Water Bottle 1L", amount: 39900 },
+    { name: "Ceramic Coffee Mug (Set of 2)", amount: 59900 },
+    { name: "Organic Cotton Bedsheet", amount: 129900 },
+    { name: "Handcrafted Scented Candle", amount: 34900 },
+    { name: "Notebook Set (Pack of 3)", amount: 29900 },
+    { name: "Stainless Steel Lunch Box", amount: 89900 },
     { name: "Handwoven Jute Rug 3x5", amount: 179900 },
     { name: "Embroidered Velvet Cushion", amount: 44900 },
     { name: "Herbal Green Tea Tin 100g", amount: 24900 },
@@ -108,8 +108,8 @@ async function generateSyntheticOrders(): Promise<GroundTruthPair[]> {
   for (let i = 0; i < 130; i++) {
     const base = items[i % items.length];
     const customerName = `Customer ${i + 1}`;
-    const customerVpa = `user_${i + 1}@upi`;
-    const vpaHash = hashVpa(customerVpa);
+    const rawPayerId = `card_${(1000 + (i % 9000))}_visa`;
+    const identityHash = hashPayerIdentity(rawPayerId);
 
     const iteration = Math.floor(i / items.length);
     const variantTag = iteration > 0 ? ` (Batch ${iteration + 1})` : "";
@@ -122,7 +122,7 @@ async function generateSyntheticOrders(): Promise<GroundTruthPair[]> {
       product_name: productName,
       amount: base.amount,
       customer_name: customerName,
-      customer_vpa_hash: vpaHash,
+      customer_identity_hash: identityHash,
       created_at: createdAt,
       is_benchmark: true,
     });
@@ -131,7 +131,7 @@ async function generateSyntheticOrders(): Promise<GroundTruthPair[]> {
       orderId: order.id,
       orderName: productName,
       amount: base.amount,
-      customerVpaHash: vpaHash,
+      customerIdentityHash: identityHash,
       createdAt,
     });
   }
@@ -161,15 +161,16 @@ async function runBenchmark(): Promise<BenchmarkResult> {
 
   for (let i = 0; i < totalPayments; i++) {
     const targetOrder = orderPool[i];
-    const isReturningPayer = (i % 10 < 4); // 40% known payer VPA
-    const payerVpaHash = isReturningPayer ? targetOrder.customerVpaHash : hashVpa(`stranger_${i}@upi`);
+    const isReturningPayer = (i % 10 < 4); // 40% known payer identity
+    const payerIdentityHash = isReturningPayer ? targetOrder.customerIdentityHash : hashPayerIdentity(`stranger_${i}_visa`);
     const rzpId = `pay_bench_${i + 1}`;
 
     // Payment arrives
     const payment = await createPaymentFromWebhook({
       razorpay_payment_id: rzpId,
       amount: targetOrder.amount,
-      payer_vpa_hash: payerVpaHash,
+      payer_identity_hash: payerIdentityHash,
+      payment_method: "card",
     });
 
     await runMatchingEngine(payment.id);

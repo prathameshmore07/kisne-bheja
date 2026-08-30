@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS orders (
   product_name TEXT NOT NULL,
   amount INTEGER NOT NULL,                       -- Amount in paise (e.g. 49900 = ₹499.00)
   customer_name TEXT,
-  customer_vpa_hash TEXT,                        -- SHA-256 hash of customer UPI VPA
+  customer_identity_hash TEXT,                   -- SHA-256 hash of customer identifier (card proxy, bank code, wallet, VPA)
   customer_card_last4 TEXT,                      -- Card Last-4 identifier proxy
   customer_card_network TEXT,                    -- Visa, MasterCard, RuPay
   status order_status NOT NULL DEFAULT 'pending',
@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS payments (
   razorpay_payment_id TEXT,
   razorpay_payment_link_id TEXT,
   amount INTEGER NOT NULL,                       -- Amount in paise
-  payer_vpa_hash TEXT,                           -- SHA-256 hash of payer UPI VPA
-  payment_method TEXT NOT NULL DEFAULT 'upi',    -- 'upi' | 'card'
+  payer_identity_hash TEXT,                      -- SHA-256 hash of payer identifier
+  payment_method TEXT NOT NULL DEFAULT 'card',   -- 'card' | 'upi' | 'netbanking' | 'wallet'
   payer_card_last4 TEXT,
   payer_card_network TEXT,
   status payment_status NOT NULL DEFAULT 'unresolved',

@@ -27,7 +27,7 @@ export default function MerchantSettingsModal() {
 
   // New Rule Form State
   const [ruleName, setRuleName] = useState("");
-  const [conditionType, setConditionType] = useState<"customer_name" | "payer_vpa_hash" | "product_name" | "min_amount">("customer_name");
+  const [conditionType, setConditionType] = useState<"customer_name" | "payer_identity_hash" | "payer_vpa_hash" | "product_name" | "min_amount">("customer_name");
   const [conditionValue, setConditionValue] = useState("");
   const [signalWeight, setSignalWeight] = useState("0.15");
   const [ruleDetail, setRuleDetail] = useState("");
@@ -395,7 +395,7 @@ export default function MerchantSettingsModal() {
                       >
                         <option value="customer_name">Customer Name Contains</option>
                         <option value="product_name">Product Name Contains</option>
-                        <option value="payer_vpa_hash">Payer VPA Hash Equals</option>
+                        <option value="payer_identity_hash">Payer Identity Hash Equals</option>
                         <option value="min_amount">Min Amount (Paise &ge;)</option>
                       </select>
                     </div>

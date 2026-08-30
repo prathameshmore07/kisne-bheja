@@ -16,6 +16,7 @@ export interface CandidateItem {
   product_name: string;
   amount?: number;
   customer_name?: string | null;
+  customer_identity_hash?: string | null;
   customer_vpa_hash?: string | null;
   confidence: number;
   evidence: EvidenceItem[];

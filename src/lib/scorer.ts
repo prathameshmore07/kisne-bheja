@@ -121,21 +121,21 @@ export function scoreTiming(
 }
 
 export function scorePayerHistory(
-  payerVpaHash?: string | null,
-  customerVpaHash?: string | null,
+  payerIdentityHash?: string | null,
+  customerIdentityHash?: string | null,
   payerCard?: { last4?: string | null; network?: string | null },
   customerCard?: { last4?: string | null; network?: string | null }
 ): ScorerSignal | null {
-  // 1. Check UPI VPA match
-  if (payerVpaHash && customerVpaHash && payerVpaHash === customerVpaHash) {
+  // 1. Generic Payer Identity Hash match (Card proxy, Netbanking bank code, Wallet ID, UPI VPA)
+  if (payerIdentityHash && customerIdentityHash && payerIdentityHash === customerIdentityHash) {
     return {
       signal_type: "payer_history",
       weight: 0.35,
-      detail: "Payer VPA hash matches customer record",
+      detail: "Payer identity matches customer profile on record",
     };
   }
 
-  // 2. Check Card network + last4 match (for card payments where VPA is absent)
+  // 2. Direct Card network + last4 match fallback (when card metadata objects are provided)
   if (
     payerCard?.last4 &&
     customerCard?.last4 &&
@@ -149,7 +149,7 @@ export function scorePayerHistory(
     };
   }
 
-  // Absence of a match is not negative evidence against an order; first-time or unknown payers carry zero evidentiary weight
+  // Absence of a match is not negative evidence against an order; first-time or unknown payers carry zero evidentiary weight (neutral, no penalty)
   return null;
 }
 
@@ -163,8 +163,12 @@ export function scoreMerchantRule(
   let matches = false;
   if (rule.condition_type === "customer_name" && order.customer_name) {
     matches = order.customer_name.toLowerCase().includes(rule.condition_value.toLowerCase());
-  } else if (rule.condition_type === "payer_vpa_hash") {
-    matches = payment.payer_vpa_hash === rule.condition_value || order.customer_vpa_hash === rule.condition_value;
+  } else if (rule.condition_type === "payer_identity_hash" || rule.condition_type === "payer_vpa_hash") {
+    matches =
+      payment.payer_identity_hash === rule.condition_value ||
+      payment.payer_vpa_hash === rule.condition_value ||
+      order.customer_identity_hash === rule.condition_value ||
+      order.customer_vpa_hash === rule.condition_value;
   } else if (rule.condition_type === "product_name") {
     matches = order.product_name.toLowerCase().includes(rule.condition_value.toLowerCase());
   } else if (rule.condition_type === "min_amount") {

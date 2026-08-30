@@ -1,13 +1,14 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createOrder, getPendingOrdersByAmount, getPendingOrders, getCancelledOrders } from "@/lib/repo";
-import { hashVpa } from "@/lib/hash";
+import { hashPayerIdentity } from "@/lib/hash";
 import { apiSuccess, handleApiError } from "@/lib/apiResponse";
 
 const CreateOrderSchema = z.object({
   product_name: z.string().min(1, "Product name is required"),
   amount: z.number().int().positive("Amount must be a positive integer in paise"),
   customer_name: z.string().optional(),
+  customer_identity: z.string().optional(),
   customer_vpa: z.string().optional(),
   customer_card_last4: z.string().optional(),
   customer_card_network: z.string().optional(),
@@ -51,11 +52,18 @@ export async function POST(req: NextRequest) {
 
     const expiresAt = body.stale_days ? Date.now() + body.stale_days * 24 * 60 * 60 * 1000 : undefined;
 
+    let rawIdentity = body.customer_identity || body.customer_vpa;
+    if (!rawIdentity && body.customer_card_last4) {
+      rawIdentity = `${body.customer_card_last4}_${body.customer_card_network || "visa"}`;
+    }
+
+    const identityHash = rawIdentity ? hashPayerIdentity(rawIdentity) : undefined;
+
     const order = await createOrder({
       product_name: body.product_name,
       amount: body.amount,
       customer_name: body.customer_name || undefined,
-      customer_vpa_hash: body.customer_vpa ? hashVpa(body.customer_vpa) : undefined,
+      customer_identity_hash: identityHash,
       customer_card_last4: body.customer_card_last4 || undefined,
       customer_card_network: body.customer_card_network || undefined,
       expires_at: expiresAt,

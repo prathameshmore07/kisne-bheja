@@ -32,7 +32,8 @@ export interface Order {
   product_name: string;
   amount: number; // paise
   customer_name: string | null;
-  customer_vpa_hash: string | null;
+  customer_identity_hash: string | null;
+  customer_vpa_hash?: string | null;
   customer_card_last4?: string | null;
   customer_card_network?: string | null;
   status: OrderStatus;
@@ -45,7 +46,8 @@ export interface Payment {
   razorpay_payment_id: string | null;
   razorpay_payment_link_id: string | null;
   amount: number; // paise
-  payer_vpa_hash: string | null;
+  payer_identity_hash: string | null;
+  payer_vpa_hash?: string | null;
   payment_method?: "upi" | "card" | "netbanking" | "wallet";
   payer_card_last4?: string | null;
   payer_card_network?: string | null;
@@ -89,7 +91,7 @@ export interface ChatMessage {
 export interface MerchantRule {
   id: string;
   rule_name: string;
-  condition_type: "customer_name" | "payer_vpa_hash" | "product_name" | "min_amount";
+  condition_type: "customer_name" | "payer_identity_hash" | "payer_vpa_hash" | "product_name" | "min_amount";
   condition_value: string;
   signal_weight: number;
   detail: string;

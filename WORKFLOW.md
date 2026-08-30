@@ -112,7 +112,7 @@ Kisne Bheja (*"Who sent this payment?"*) is an intelligent payment reconciliatio
 * **Empty State**: When no transactions exist, the dashboard clearly informs the merchant: *"No payments in ledger yet. Kisne Bheja is listening for incoming Razorpay webhooks. Generate a payment link using 'Test Payment (Razorpay)' above and complete payment in Razorpay test mode to trigger the reconciliation pipeline."*
 * **Actions Available**:
   - `Test Payment (Razorpay)`: Calls `razorpay.paymentLink.create` via `/api/create-payment-link` and presents the merchant with the live checkout URL (`short_url`) to pay using test credentials.
-  - `+ New Order`: Manually creates pending orders with SHA-256 hashed customer VPAs.
+  - `+ New Order`: Manually creates pending orders with SHA-256 hashed customer identifiers (card proxy, bank code, wallet, VPA).
   - `⚙ Settings`: Configures auto-match thresholds ($70\%–95\%$) and review floors ($40\%–75\%$).
   - `Export CSV ↓`: Downloads real-time reconciled ledger.
 
@@ -140,7 +140,7 @@ Razorpay test-mode is the single, non-bypassable entry point for every payment r
 Each candidate order is evaluated across explainable, mathematical signals:
 1. **`amount_match`**: Base weight inversely decayed by collision pool size ($\Delta = +0.85$ for unique match, $+0.45$ for 2+ candidates).
 2. **`timing`**: Exponential decay over elapsed minutes between order placement and payment arrival ($\Delta = +0.02$ to $+0.25$).
-3. **`payer_history`**: Privacy-safe SHA-256 hash match against past customer VPAs ($\Delta = +0.35$ on match, $0.0$ neutral for unknown payers).
+3. **`payer_history`**: Privacy-safe SHA-256 hash match against past customer profile ($\Delta = +0.35$ on match, $0.0$ neutral for unknown payers).
 4. **`card_proxy`**: Card Network + Last-4 digits identity proxy match ($\Delta = +0.35$).
 5. **`order_age`**: Decay penalty if order has been pending for days ($\Delta = -0.10$).
 6. **`link_metadata`**: Explicit confirmation if payment arrived through a link created specifically for that order ($\Delta = +0.50$).

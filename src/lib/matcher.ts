@@ -93,8 +93,8 @@ export async function runMatchingEngine(
     }
 
     const payer = scorePayerHistory(
-      payment.payer_vpa_hash,
-      order.customer_vpa_hash,
+      payment.payer_identity_hash,
+      order.customer_identity_hash,
       { last4: payment.payer_card_last4, network: payment.payer_card_network },
       { last4: order.customer_card_last4, network: order.customer_card_network }
     );

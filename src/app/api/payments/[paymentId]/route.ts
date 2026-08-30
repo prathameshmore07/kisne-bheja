@@ -34,7 +34,8 @@ export async function GET(
       product_name: c.order?.product_name ?? "Unknown order",
       amount: c.order?.amount ?? 0,
       customer_name: c.order?.customer_name ?? null,
-      customer_vpa_hash: c.order?.customer_vpa_hash ?? null,
+      customer_identity_hash: c.order?.customer_identity_hash ?? c.order?.customer_vpa_hash ?? null,
+      customer_vpa_hash: c.order?.customer_identity_hash ?? c.order?.customer_vpa_hash ?? null,
       confidence: c.confidence,
       evidence: c.evidence,
     }));
