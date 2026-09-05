@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const plexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-plex-mono" });
 
 export const metadata: Metadata = {
-  title: "Kisne Bheja : UPI Order Matching",
+  title: "Kisne Bheja",
   description: "Your payment arrived. We find the order it belongs to.",
   icons: {
     icon: "/brand/favicon/favicon.ico",
