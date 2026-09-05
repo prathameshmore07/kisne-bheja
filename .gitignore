@@ -103,3 +103,11 @@ Thumbs.db
 # 8. Hosting & Cloud Deployments
 # ------------------------------------------
 .vercel
+
+# ------------------------------------------
+# 9. Private Agent Metadata
+# ------------------------------------------
+AGENTS.md
+CLAUDE.md
+agents.md
+claude.md
