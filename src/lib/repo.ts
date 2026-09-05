@@ -144,6 +144,42 @@ export async function createOrder(input: {
   return mapOrder(data);
 }
 
+export async function createOrdersBulk(inputs: Array<{
+  product_name: string;
+  amount: number;
+  customer_name?: string | null;
+  customer_identity_hash?: string | null;
+  created_at?: number;
+  is_benchmark?: boolean;
+}>): Promise<Order[]> {
+  const supabase = getSupabaseServer();
+  const payloads = inputs.map((input) => ({
+    product_name: input.product_name,
+    amount: input.amount,
+    customer_name: input.customer_name ?? null,
+    customer_identity_hash: input.customer_identity_hash ?? null,
+    status: "pending",
+    is_benchmark: input.is_benchmark ?? false,
+    ...(input.created_at ? { created_at: new Date(input.created_at).toISOString() } : {}),
+  }));
+
+  const { data, error } = await supabase.from("orders").insert(payloads).select();
+  if (error) {
+    const fallbackPayloads = payloads.map((p) => {
+      const copy: any = { ...p };
+      copy.customer_vpa_hash = copy.customer_identity_hash;
+      delete copy.customer_identity_hash;
+      return copy;
+    });
+    const retry = await supabase.from("orders").insert(fallbackPayloads).select();
+    if (retry.error || !retry.data) {
+      throw new Error(`Failed to bulk create orders: ${retry.error?.message || error.message}`);
+    }
+    return retry.data.map(mapOrder);
+  }
+  return (data || []).map(mapOrder);
+}
+
 export async function getPendingOrders(): Promise<Order[]> {
   const supabase = getSupabaseServer();
   const { data, error } = await supabase.from("orders").select("*").eq("status", "pending");
@@ -323,6 +359,7 @@ export async function createPaymentFromWebhook(input: {
   payment_method?: "upi" | "card" | "netbanking" | "wallet";
   payer_card_last4?: string;
   payer_card_network?: string;
+  is_benchmark?: boolean;
 }): Promise<Payment> {
   const velocity = await checkPaymentVelocity(input.amount, 60);
   const payment = await createPayment({
@@ -501,6 +538,38 @@ export async function appendEvidence(entry: {
     mapped.signal_type = "merchant_rule";
   }
   return mapped;
+}
+
+export async function appendEvidenceBatch(entries: Array<{
+  payment_id: string;
+  candidate_order_id: string;
+  signal_type: SignalType;
+  signal_weight: number;
+  detail?: string;
+  confidence_after: number;
+}>): Promise<EvidenceEntry[]> {
+  if (entries.length === 0) return [];
+  const supabase = getSupabaseServer();
+  const payloads = entries.map((entry) => ({
+    payment_id: entry.payment_id,
+    candidate_order_id: entry.candidate_order_id,
+    signal_type: entry.signal_type === "merchant_rule" ? "payer_history" : entry.signal_type,
+    signal_weight: entry.signal_weight,
+    detail: entry.detail ?? null,
+    confidence_after: entry.confidence_after,
+  }));
+
+  const { data, error } = await supabase.from("evidence_log").insert(payloads).select();
+  if (error || !data) {
+    throw new Error(`Failed to append evidence batch: ${error?.message}`);
+  }
+  return data.map((d, i) => {
+    const mapped = mapEvidence(d);
+    if (entries[i].signal_type === "merchant_rule") {
+      mapped.signal_type = "merchant_rule";
+    }
+    return mapped;
+  });
 }
 
 export async function getEvidenceForPayment(paymentId: string): Promise<EvidenceEntry[]> {
@@ -747,6 +816,7 @@ export async function getBatchResolutionInfoForPayment(paymentId: string): Promi
 
 export async function clearAllData(benchmarkOnly = false): Promise<void> {
   const supabase = getSupabaseServer();
+  paymentFramingMap.clear();
   if (benchmarkOnly) {
     await supabase.from("payments").delete().eq("is_benchmark", true);
     await supabase.from("orders").delete().eq("is_benchmark", true);
@@ -756,6 +826,43 @@ export async function clearAllData(benchmarkOnly = false): Promise<void> {
     await supabase.from("audit_log").delete().gte("id", 0);
     await supabase.from("payments").delete().not("id", "is", null);
     await supabase.from("orders").delete().not("id", "is", null);
+  }
+}
+
+// In-memory cache for merchant clarification framings
+const paymentFramingMap = new Map<string, any>();
+
+export function getClarificationFraming(paymentId: string) {
+  return paymentFramingMap.get(paymentId);
+}
+
+export function setClarificationFraming(paymentId: string, framing: any) {
+  paymentFramingMap.set(paymentId, framing);
+}
+
+export async function getRecentlyResolvedPayments(withinMinutes = 60): Promise<Array<{
+  payment: Payment;
+  order?: Order;
+}>> {
+  const supabase = getSupabaseServer();
+  const since = new Date(Date.now() - withinMinutes * 60 * 1000).toISOString();
+  try {
+    const { data, error } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("status", "resolved")
+      .gte("resolved_at", since)
+      .order("resolved_at", { ascending: false });
+    if (error || !data) return [];
+    const payments = data.map(mapPayment);
+    const results = [];
+    for (const p of payments) {
+      const order = p.resolved_order_id ? await getOrderById(p.resolved_order_id) : undefined;
+      results.push({ payment: p, order });
+    }
+    return results;
+  } catch {
+    return [];
   }
 }
 

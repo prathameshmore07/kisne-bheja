@@ -183,7 +183,7 @@ export default function LiveConfidence({
               disabled={busyOrderId === "unlink"}
               className="text-xs font-mono underline text-red disabled:opacity-50 cursor-pointer"
             >
-              {busyOrderId === "unlink" ? "Unlinking..." : "Wrong match? Unlink"}
+              {busyOrderId === "unlink" ? "Reversing match..." : "Reversing a mistake (undo match)"}
             </button>
           )}
         </div>

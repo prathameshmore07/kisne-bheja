@@ -6,6 +6,7 @@ import {
   updatePaymentConfidence,
   addAudit,
   getMerchantRules,
+  appendEvidenceBatch,
 } from "./repo";
 import {
   scoreAmountMatch,
@@ -20,6 +21,7 @@ import {
   CandidateScore,
   RecommendedAction,
 } from "./scorer";
+import { EvidenceEntry } from "./types";
 
 export interface MatchingResult {
   action: RecommendedAction | "manual_review";
@@ -68,29 +70,27 @@ export async function runMatchingEngine(
   }
 
   const sameAmountCount = exactCandidates.length;
+  const merchantRules = await getMerchantRules();
+
+  const evidenceToInsert: Array<{
+    payment_id: string;
+    candidate_order_id: string;
+    signal_type: any;
+    signal_weight: number;
+    detail?: string;
+    confidence_after: number;
+  }> = [];
+
+  const candidatesWithScores: CandidateScore[] = [];
 
   for (const order of candidatePool) {
+    const signals: Array<{ signal_type: any; weight: number; detail?: string }> = [];
+
     const amt = scoreAmountMatch(payment.amount, order.amount, sameAmountCount);
-    if (amt) {
-      await addEvidenceAndRecompute({
-        payment_id: payment.id,
-        candidate_order_id: order.id,
-        signal_type: amt.signal_type,
-        signal_weight: amt.weight,
-        detail: amt.detail,
-      });
-    }
+    if (amt) signals.push({ signal_type: amt.signal_type, weight: amt.weight, detail: amt.detail });
 
     const timing = scoreTiming(payment.received_at, order.created_at);
-    if (timing) {
-      await addEvidenceAndRecompute({
-        payment_id: payment.id,
-        candidate_order_id: order.id,
-        signal_type: timing.signal_type,
-        signal_weight: timing.weight,
-        detail: timing.detail,
-      });
-    }
+    if (timing) signals.push({ signal_type: timing.signal_type, weight: timing.weight, detail: timing.detail });
 
     const payer = scorePayerHistory(
       payment.payer_identity_hash,
@@ -98,47 +98,64 @@ export async function runMatchingEngine(
       { last4: payment.payer_card_last4, network: payment.payer_card_network },
       { last4: order.customer_card_last4, network: order.customer_card_network }
     );
-    if (payer) {
-      await addEvidenceAndRecompute({
-        payment_id: payment.id,
-        candidate_order_id: order.id,
-        signal_type: payer.signal_type,
-        signal_weight: payer.weight,
-        detail: payer.detail,
-      });
-    }
+    if (payer) signals.push({ signal_type: payer.signal_type, weight: payer.weight, detail: payer.detail });
 
     // Evaluate custom merchant rules
-    const merchantRules = await getMerchantRules();
     for (const rule of merchantRules) {
       const ruleSignal = scoreMerchantRule(rule, order, payment);
-      if (ruleSignal) {
-        await addEvidenceAndRecompute({
-          payment_id: payment.id,
-          candidate_order_id: order.id,
-          signal_type: ruleSignal.signal_type,
-          signal_weight: ruleSignal.weight,
-          detail: ruleSignal.detail,
-        });
-      }
+      if (ruleSignal) signals.push({ signal_type: ruleSignal.signal_type, weight: ruleSignal.weight, detail: ruleSignal.detail });
     }
 
     if (paymentLinkOrderId && order.id === paymentLinkOrderId) {
       const link = scoreLinkMetadata(payment.razorpay_payment_link_id ?? "payment_link", order.id);
       if (link) {
-        await addEvidenceAndRecompute({
-          payment_id: payment.id,
-          candidate_order_id: order.id,
+        signals.push({
           signal_type: link.signal_type,
-          signal_weight: link.weight,
+          weight: link.weight,
           detail: `Payment link metadata explicitly matches order: ${order.product_name}`,
         });
       }
     }
+
+    let runningConfidence = 0;
+    const orderEvidence: EvidenceEntry[] = [];
+    for (const s of signals) {
+      runningConfidence = Math.max(0, Math.min(1, Math.round((runningConfidence + s.weight) * 1000) / 1000));
+      evidenceToInsert.push({
+        payment_id: payment.id,
+        candidate_order_id: order.id,
+        signal_type: s.signal_type,
+        signal_weight: s.weight,
+        detail: s.detail,
+        confidence_after: runningConfidence,
+      });
+      orderEvidence.push({
+        id: 0,
+        payment_id: payment.id,
+        candidate_order_id: order.id,
+        signal_type: s.signal_type,
+        signal_weight: s.weight,
+        detail: s.detail ?? null,
+        confidence_after: runningConfidence,
+        created_at: Date.now(),
+      });
+    }
+
+    candidatesWithScores.push({
+      candidate_order_id: order.id,
+      confidence: runningConfidence,
+      order,
+      evidence: orderEvidence,
+    });
   }
 
-  const best = await getBestCandidate(payment.id);
-  const allCandidateScores = await getAllCandidateScores(payment.id);
+  if (evidenceToInsert.length > 0) {
+    await appendEvidenceBatch(evidenceToInsert);
+  }
+
+  candidatesWithScores.sort((a, b) => b.confidence - a.confidence);
+  const best = candidatesWithScores[0];
+  const allCandidateScores = candidatesWithScores;
 
   if (!best) {
     await updatePaymentConfidence(payment.id, 0, "manual_review");

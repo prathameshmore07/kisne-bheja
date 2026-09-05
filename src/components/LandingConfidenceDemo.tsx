@@ -84,7 +84,7 @@ export default function LandingConfidenceDemo() {
       </div>
 
       {!isScenario2 ? (
-        /* SCENARIO 1: Single ambiguous payment with WhatsApp clarification */
+        /* SCENARIO 1: Single ambiguous payment with AI-assisted in-dashboard framing */
         <div className="animate-fadeIn">
           {/* Top: Incoming payment amount & status */}
           <div className="flex items-baseline justify-between pb-4 mb-4 border-b border-line">
@@ -99,7 +99,7 @@ export default function LandingConfidenceDemo() {
                   : "bg-amber/10 text-amber border-amber/20"
               }`}
             >
-              {isScenario1Resolved ? "Payment matched" : "We're not sure yet"}
+              {isScenario1Resolved ? "Payment matched" : "Needs confirmation"}
             </div>
           </div>
 
@@ -107,7 +107,7 @@ export default function LandingConfidenceDemo() {
           <div className="py-1 mb-4">
             <div className="flex items-baseline justify-between mb-2">
               <div className="font-display font-bold text-base text-ink">
-                Blue Kurta (Size M)
+                Blue Kurta (Size M) · Priya Sharma
               </div>
               <div className="text-right">
                 <span className="font-display text-2xl font-bold tabular-nums text-ink">{displayPct1}%</span>
@@ -132,34 +132,38 @@ export default function LandingConfidenceDemo() {
                   <svg className="w-3.5 h-3.5 text-green shrink-0 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>Customer confirmed in chat · Red Kurta ruled out</span>
+                  <span>Merchant confirmed match · Red Kurta excluded</span>
                 </span>
               ) : (
-                <span>Same amount (+45%) · Timing match (+15%)</span>
+                <span>Same amount (+45%) · Timing match (+15%) · Card proxy (+35%)</span>
               )}
             </div>
           </div>
 
-          {/* WhatsApp conversation thread */}
+          {/* In-dashboard AI clarification framing thread */}
           <div className="pt-4 border-t border-line space-y-2 min-h-[140px]">
             {step >= 1 && step <= 3 ? (
               <div className="text-xs text-ink animate-fadeIn">
-                <div className="text-[10px] font-mono uppercase text-muted mb-0.5">Your store asked</div>
-                <div className="p-2 rounded bg-paper text-ink leading-relaxed">
-                  Hi Priya! Just checking, was your ₹499 payment for the <strong>Blue Kurta</strong> or the <strong>Red Kurta</strong>?
+                <div className="text-[10px] font-mono uppercase text-muted mb-0.5">Gemini in-dashboard framing</div>
+                <div className="p-3 rounded bg-paper border border-line text-ink leading-relaxed">
+                  Two orders for ₹499 were placed 3m apart: <strong>Priya Sharma</strong> (Blue Kurta) and <strong>Aman Verma</strong> (Red Kurta).
+                  <div className="mt-1.5 text-[11px] text-amber font-mono">
+                    💡 Recent Pattern: Priya Sharma paid via Visa ····1111 minutes ago.
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="text-xs text-muted font-mono italic py-4 text-center">
-                Asking customer one question...
+                Generating decision framing...
               </div>
             )}
 
             {step >= 2 && step <= 3 && (
               <div className="text-xs text-ink animate-fadeIn">
-                <div className="text-[10px] font-mono uppercase text-muted mb-0.5 text-right">Customer replied</div>
-                <div className="p-2 rounded bg-paper text-ink ml-auto max-w-[85%] leading-relaxed font-mono">
-                  haan blue kurta wala
+                <div className="text-[10px] font-mono uppercase text-muted mb-0.5 text-right">Merchant action</div>
+                <div className="p-2 rounded bg-paper border border-line text-ink ml-auto max-w-[85%] leading-relaxed font-mono flex items-center justify-end gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green inline-block" />
+                  <span>Single-tap confirmed: Blue Kurta (Priya Sharma)</span>
                 </div>
               </div>
             )}
@@ -167,11 +171,11 @@ export default function LandingConfidenceDemo() {
             {step === 3 && (
               <div className="text-xs text-ink animate-fadeIn">
                 <div className="text-[10px] font-mono uppercase text-green font-semibold mb-0.5 flex items-center justify-between">
-                  <span>Your store (auto-confirmed)</span>
+                  <span>Ledger Status</span>
                   <span className="text-[9px] bg-green/10 text-green px-1.5 py-0.5 rounded font-mono">Auto-fulfillment</span>
                 </div>
                 <div className="p-2 rounded bg-green/10 text-green dark:text-emerald-300 leading-relaxed font-medium border border-green/20">
-                  Confirmed — your Blue Kurta is on its way, thanks Priya!
+                  Payment reconciled — inventory unlocked and order marked ready to ship.
                 </div>
               </div>
             )}
@@ -189,7 +193,7 @@ export default function LandingConfidenceDemo() {
               <span
                 className={`text-xs font-mono px-2 py-0.5 rounded font-semibold border ${
                   isScenario2Resolved
-                    ? "bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/50"
+                    ? "bg-green/10 text-green border-green/20"
                     : "bg-amber/10 text-amber border-amber/20"
                 }`}
               >
@@ -265,9 +269,7 @@ export default function LandingConfidenceDemo() {
               className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                 step === i || (step === 6 && i === 5)
                   ? "w-6 bg-ink"
-                  : i < 4
-                  ? "w-2 bg-line hover:bg-muted"
-                  : "w-2 bg-indigo-200 hover:bg-indigo-400"
+                  : "w-2 bg-line hover:bg-muted"
               }`}
               title={`Step ${i + 1}`}
             />
@@ -276,6 +278,11 @@ export default function LandingConfidenceDemo() {
         <span className="text-[10px] font-mono text-muted">
           {isPaused ? "Paused on hover" : "Autoplaying"}
         </span>
+      </div>
+
+      {/* Explicit illustrative preview disclaimer */}
+      <div className="mt-3 pt-2 text-center text-[10px] font-mono text-muted/70 border-t border-line/40">
+        Illustrative preview of the in-dashboard reconciliation flow · not a live transaction
       </div>
     </div>
   );

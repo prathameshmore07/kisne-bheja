@@ -1,12 +1,12 @@
 /**
- * UNIT TEST: Customer Clarification & Single Question Stopping Rule
+ * UNIT TEST: Merchant Clarification & Single Framing Stopping Rule
  * 
- * Purpose: Verifies that exactly ONE clarifying question is sent per payment,
- * and subsequent attempts are blocked by the strict stopping rule.
+ * Purpose: Verifies that exactly ONE clarifying AI framing is generated per payment,
+ * and subsequent attempts are blocked by the strict max-1 stopping rule.
  */
-import { createPayment, getChatForPayment, clearAllData } from "./repo";
+import { createPayment, getClarificationFraming, clearAllData } from "./repo";
 import { runMatchingEngine } from "./matcher";
-import { maybeSendClarification } from "./clarification";
+import { maybeGenerateMerchantClarification } from "./clarification";
 import { seedDatabase } from "./seed";
 
 async function main() {
@@ -18,16 +18,20 @@ async function main() {
   await runMatchingEngine(payment.id);
 
   console.log("--- First Clarification Attempt ---");
-  const result1 = await maybeSendClarification(payment.id);
+  const result1 = await maybeGenerateMerchantClarification(payment.id);
   console.log("First call result:", result1);
-  console.log("Chat log so far:", await getChatForPayment(payment.id));
+  console.log("Framing stored:", getClarificationFraming(payment.id));
 
   console.log("\n--- Second Clarification Attempt (Must Be Blocked) ---");
-  const result2 = await maybeSendClarification(payment.id);
+  const result2 = await maybeGenerateMerchantClarification(payment.id);
   console.log("Second call result (should be blocked):", result2);
 
-  const isBlocked = result2.sent === false && result2.reason.includes("already sent");
+  const isBlocked = result2.generated === false && result2.reason.includes("already");
   console.log("Stopping rule enforcement check:", isBlocked ? "PASSED (blocked)" : "FAILED");
+  if (!isBlocked) {
+    console.error("✗ Stopping rule check failed");
+    process.exit(1);
+  }
   console.log("✅ test-clarification completed successfully.\n");
 }
 

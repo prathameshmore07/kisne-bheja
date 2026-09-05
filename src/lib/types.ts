@@ -16,7 +16,7 @@ export type AuditAction =
   | "webhook_received"
   | "evidence_added"
   | "clarification_sent"
-  | "reply_interpreted"
+  | "reply_interpreted" // Unused legacy audit action retained for schema backwards-compatibility after chat-removal refactor
   | "auto_resolved"
   | "batch_resolved"
   | "approved"

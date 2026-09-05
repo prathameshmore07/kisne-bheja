@@ -4,6 +4,7 @@ import {
   getOrderById,
   getChatForPayment,
   getBatchResolutionInfoForPayment,
+  getClarificationFraming,
 } from "@/lib/repo";
 import { getAllCandidateScores } from "@/lib/scorer";
 import { getTimelineForPayment } from "@/lib/audit";
@@ -40,6 +41,8 @@ export async function GET(
       evidence: c.evidence,
     }));
 
+    const clarificationFraming = getClarificationFraming(paymentId) || null;
+
     return NextResponse.json({
       payment: {
         id: payment.id,
@@ -55,6 +58,7 @@ export async function GET(
       timeline,
       chat,
       batchResolution,
+      clarificationFraming,
     });
   } catch (error) {
     console.error("Error fetching payment data:", error);

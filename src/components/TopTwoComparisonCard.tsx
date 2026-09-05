@@ -9,15 +9,16 @@ interface TopTwoComparisonCardProps {
 }
 
 const SIGNAL_LABELS: Record<string, string> = {
-  amount_match: "Amount Match",
-  timing: "Timing Proximity",
-  payer_history: "Payer Identity",
-  conversation: "Customer Confirmation",
-  batch_assignment: "Joint Assignment",
-  merchant_rule: "Merchant Rule",
-  link_metadata: "Payment Link",
-  order_age: "Order Freshness",
-  negative: "Negative / Excluded",
+  amount_match: "Exact price match",
+  timing: "Placed around the same time",
+  payer_history: "Customer has paid before",
+  merchant_rule: "Merchant priority rule",
+  link_metadata: "Tied to specific payment link",
+  conversation: "Previous confirmation",
+  batch_assignment: "Matched together with sibling payment",
+  order_age: "Order is getting old",
+  partial: "Partial payment match",
+  negative: "Previously excluded",
 };
 
 export default function TopTwoComparisonCard({
@@ -180,7 +181,7 @@ export default function TopTwoComparisonCard({
           Why <strong className="text-ink">{candidateA.product_name}</strong> leads: higher cumulative signal weight (+{scoreA - scoreB}% spread)
         </span>
         <span className="font-mono text-[11px]">
-          Threshold policy enforced: &ge;85% for auto-resolution
+          Automatic resolution applied when confidence clears policy threshold
         </span>
       </div>
     </div>

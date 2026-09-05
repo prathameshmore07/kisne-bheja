@@ -245,14 +245,14 @@ export default function MerchantSettingsModal() {
                     className="w-full accent-ink cursor-pointer"
                   />
                   <p className="text-[11px] text-muted leading-relaxed">
-                    Payments between this score and the auto-match threshold are queued for your 1-click approval. Below this triggers conversational clarification.
+                    Payments between this score and the auto-match threshold are queued for your 1-click confirmation. Below this triggers in-dashboard AI decision framing.
                   </p>
                 </div>
 
-                {/* WhatsApp Language */}
+                {/* AI Framing Language */}
                 <div className="space-y-2 pt-2 border-t border-line">
                   <label className="block text-xs font-mono font-semibold text-ink uppercase tracking-wider mb-1">
-                    Customer WhatsApp Language
+                    AI Clarification Framing Language
                   </label>
                   <div className="grid grid-cols-3 gap-2 text-xs font-mono">
                     {(["hinglish", "english", "hindi"] as const).map((lang) => (

@@ -1,13 +1,13 @@
 import {
   getPaymentById,
   getOrderById,
-  getChatForPayment,
   getBatchResolutionInfoForPayment,
+  getClarificationFraming,
 } from "@/lib/repo";
 import { getAllCandidateScores } from "@/lib/scorer";
 import { formatRupees } from "@/lib/format";
 import LiveConfidence from "@/components/LiveConfidence";
-import SimulatedWhatsApp from "@/components/SimulatedWhatsApp";
+import MerchantClarificationCard from "@/components/MerchantClarificationCard";
 import Link from "next/link";
 import BrandWordmark from "@/components/BrandWordmark";
 import { notFound } from "next/navigation";
@@ -28,8 +28,19 @@ export default async function PaymentDetailPage({ params }: PageProps) {
 
   const resolvedOrder = payment.resolved_order_id ? await getOrderById(payment.resolved_order_id) : undefined;
   const candidateScores = await getAllCandidateScores(paymentId);
-  const initialChat = await getChatForPayment(paymentId);
   const batchResolution = await getBatchResolutionInfoForPayment(paymentId);
+  const initialFraming = getClarificationFraming(paymentId) || null;
+
+  const candidates = candidateScores.map((c) => ({
+    order_id: c.candidate_order_id,
+    product_name: c.order?.product_name ?? "Unknown order",
+    amount: c.order?.amount,
+    customer_name: c.order?.customer_name,
+    customer_identity_hash: c.order?.customer_identity_hash ?? c.order?.customer_vpa_hash,
+    customer_vpa_hash: c.order?.customer_identity_hash ?? c.order?.customer_vpa_hash,
+    confidence: c.confidence,
+    evidence: c.evidence,
+  }));
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-12">
@@ -79,14 +90,18 @@ export default async function PaymentDetailPage({ params }: PageProps) {
         )}
       </section>
 
-      {/* Customer Conversation (WhatsApp Channel) */}
-      <section className="mb-12">
-        <SimulatedWhatsApp
-          paymentId={payment.id}
-          initialChat={initialChat}
-          paymentStatus={payment.status}
-        />
-      </section>
+      {/* AI-Assisted In-Dashboard Clarification Framing */}
+      {payment.status !== "resolved" && (
+        <section className="mb-12">
+          <MerchantClarificationCard
+            paymentId={payment.id}
+            paymentAmount={payment.amount}
+            paymentStatus={payment.status}
+            candidates={candidates}
+            initialFraming={initialFraming}
+          />
+        </section>
+      )}
 
       {/* Candidate Breakdown & Reasoning */}
       <section className="mb-12">

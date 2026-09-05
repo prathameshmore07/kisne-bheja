@@ -1,15 +1,13 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { z } from "zod";
 
-export const ClarificationSchema = z.object({
-  message: z.string().min(1),
+export const MerchantFramingSchema = z.object({
+  distinguishing_question: z.string().min(1),
+  recent_pattern_insight: z.string().nullable().optional(),
+  distinguishing_factors: z.array(z.string()).default([]),
 });
 
-export const InterpretationSchema = z.object({
-  matched_order_hint: z.string().nullable(),
-  confidence_signal: z.number().min(0).max(1),
-  reasoning: z.string(),
-});
+export type MerchantFraming = z.infer<typeof MerchantFramingSchema>;
 
 export const SummarySchema = z.object({
   summary: z.string(),
@@ -38,202 +36,108 @@ function getModel() {
   return genAI.getGenerativeModel({ model: modelName });
 }
 
-export async function generateClarificationMessage(
-  candidates: Array<{ order_id: string; product_name: string; amount?: number }>,
-  language: "hinglish" | "english" | "hindi" = "hinglish"
-): Promise<{ message: string }> {
-  const candidateNames = candidates.map((c) => c.product_name);
-
-  let fallbackMessage = "Hi! We received your payment. Could you please confirm your order details?";
-  if (language === "hindi") {
-    fallbackMessage =
-      candidateNames.length > 0
-        ? `नमस्ते! क्या आपका भुगतान ${candidateNames.join(" या ")} के लिए था?`
-        : "नमस्ते! क्या आप अपने ऑर्डर की पुष्टि कर सकते हैं?";
-  } else if (language === "english") {
-    fallbackMessage =
-      candidateNames.length > 0
-        ? `Hi! Just confirming — is this payment for the ${candidateNames.join(" or the ")}?`
-        : "Hi! We received your payment. Could you please confirm your order details?";
-  } else {
-    fallbackMessage =
-      candidateNames.length > 0
-        ? `Hi! Just checking, was your payment for the ${candidateNames.join(" or the ")}?`
-        : "Hi! We received your payment. Could you please confirm your order details?";
-  }
-
-  try {
-    const model = getModel();
-    if (!model) {
-      console.log(`[Gemini Clarification] (API key not configured) -> Using template: "${fallbackMessage}"`);
-      return { message: fallbackMessage };
-    }
-
-    const langInstruction =
-      language === "hindi"
-        ? "Draft the message in polite, natural conversational Hindi (Devanagari script)."
-        : language === "english"
-        ? "Draft the message in polite, professional English."
-        : "Draft the message in natural, conversational Hinglish (Hindi phrasing written in Latin script).";
-
-    const prompt = `You are an AI assistant for an Indian merchant store. A customer sent a payment that could match multiple pending orders: ${JSON.stringify(
-      candidates
-    )}.
-${langInstruction}
-Draft a concise, single-sentence clarification message asking the customer to confirm which item they purchased.
-Keep it natural, friendly, and under 25 words.
-
-Respond ONLY with valid JSON matching this schema:
-{
-  "message": "the drafted message"
-}`;
-
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-    const parsed = extractJson(raw);
-    const validated = ClarificationSchema.parse(parsed);
-    console.log(`[Gemini Clarification SUCCESS] Drafted: "${validated.message}"`);
-    return validated;
-  } catch (err: any) {
-    const msg = err?.message?.split("\n")[0] || String(err);
-    console.log(`[Gemini Clarification FAILED: ${msg}] -> Using fallback template: "${fallbackMessage}"`);
-    return { message: fallbackMessage };
-  }
+export interface CandidateInfo {
+  order_id: string;
+  product_name: string;
+  amount?: number;
+  customer_name?: string | null;
+  created_at?: number;
 }
 
-export async function interpretCustomerReply(
-  customerMessage: string,
-  candidates: Array<{ order_id: string; product_name: string }>
-): Promise<{
-  matched_order_hint: string | null;
-  confidence_signal: number;
-  reasoning: string;
-}> {
-  function runFallback(reason: string): {
-    matched_order_hint: string | null;
-    confidence_signal: number;
-    reasoning: string;
-  } {
-    const lower = customerMessage.toLowerCase().trim();
+export interface RecentPaymentInfo {
+  id: string;
+  amount: number;
+  product_name?: string | null;
+  customer_name?: string | null;
+  resolved_at?: number | null;
+}
 
-    if (candidates.length === 0) {
-      const res = {
-        matched_order_hint: null,
-        confidence_signal: 0,
-        reasoning: "Fallback matching failed: no candidate orders provided",
-      };
-      console.log(`[Deterministic Fallback] (${reason}) -> No candidate orders available`);
-      return res;
-    }
+export async function generateMerchantClarificationFraming(input: {
+  payment: {
+    id: string;
+    amount: number;
+    received_at: number;
+    payment_method?: string;
+  };
+  candidates: CandidateInfo[];
+  recentResolvedPayments?: RecentPaymentInfo[];
+}): Promise<MerchantFraming> {
+  const amountFormatted = `₹${(input.payment.amount / 100).toFixed(2)}`;
+  const candidateNames = input.candidates
+    .map((c) => (c.customer_name ? `${c.customer_name} (${c.product_name})` : c.product_name))
+    .join(" vs ");
 
-    // 1. Exact full name or direct substring match
-    for (const c of candidates) {
-      const prodLower = c.product_name.toLowerCase();
-      if (lower.includes(prodLower) || prodLower.includes(lower)) {
-        const res = {
-          matched_order_hint: c.order_id,
-          confidence_signal: 0.90,
-          reasoning: `Deterministic fallback exact keyword match on "${c.product_name}"`,
-        };
-        console.log(`[Deterministic Fallback Matched Exact] (${reason}) -> Matched "${c.product_name}" (${c.order_id}) with 90% confidence`);
-        return res;
+  // Deterministic fallback generator
+  function makeFallback(reason: string): MerchantFraming {
+    let recentPattern: string | null = null;
+    if (input.recentResolvedPayments && input.recentResolvedPayments.length > 0) {
+      const recentSameAmount = input.recentResolvedPayments.find(
+        (p) => p.amount === input.payment.amount && p.customer_name
+      );
+      if (recentSameAmount) {
+        const minsAgo = recentSameAmount.resolved_at
+          ? Math.max(1, Math.round((Date.now() - recentSameAmount.resolved_at) / 60000))
+          : 5;
+        recentPattern = `A similar payment of ${amountFormatted} just resolved to ${recentSameAmount.customer_name} ${minsAgo} minutes ago. Check if this is a repeat payment or intended for another customer.`;
       }
     }
 
-    // 2. Color synonyms in Hindi / Hinglish
-    const colorSynonyms: Record<string, string[]> = {
-      blue: ["blue", "neela", "nila"],
-      red: ["red", "laal", "lal"],
-      green: ["green", "hara", "hari"],
-      black: ["black", "kaala", "kala"],
+    const distinguishingQuestion =
+      input.candidates.length > 0
+        ? `Two pending orders share the amount of ${amountFormatted}: ${candidateNames}. Confirm which customer this payment belongs to.`
+        : `Unassigned payment of ${amountFormatted} received. Confirm order allocation.`;
+
+    const factors = input.candidates.map((c) => {
+      const ageMins = c.created_at ? Math.round((Date.now() - c.created_at) / 60000) : 0;
+      return `${c.customer_name || "Customer"} · ${c.product_name} (placed ${ageMins}m ago)`;
+    });
+
+    console.log(`[Gemini Merchant Framing] (${reason}) -> Using deterministic framing`);
+    return {
+      distinguishing_question: distinguishingQuestion,
+      recent_pattern_insight: recentPattern,
+      distinguishing_factors: factors,
     };
-
-    for (const c of candidates) {
-      const prodLower = c.product_name.toLowerCase();
-      for (const [enColor, synonyms] of Object.entries(colorSynonyms)) {
-        if (prodLower.includes(enColor)) {
-          if (synonyms.some((syn) => lower.includes(syn))) {
-            const res = {
-              matched_order_hint: c.order_id,
-              confidence_signal: 0.85,
-              reasoning: `Deterministic fallback color synonym match (${enColor}) on "${c.product_name}"`,
-            };
-            console.log(`[Deterministic Fallback Matched Synonym] (${reason}) -> Matched synonym "${enColor}" for "${c.product_name}" (${c.order_id}) with 85% confidence`);
-            return res;
-          }
-        }
-      }
-    }
-
-    // 3. Best token overlap
-    let bestCandidate: (typeof candidates)[0] | null = null;
-    let maxMatches = 0;
-
-    for (const c of candidates) {
-      const prodLower = c.product_name.toLowerCase();
-      const words = prodLower.split(/\s+/).filter((w) => w.length > 2);
-      const matches = words.filter((w) => lower.includes(w)).length;
-      if (matches > maxMatches) {
-        maxMatches = matches;
-        bestCandidate = c;
-      }
-    }
-
-    if (bestCandidate && maxMatches > 0) {
-      const res = {
-        matched_order_hint: bestCandidate.order_id,
-        confidence_signal: 0.85,
-        reasoning: `Deterministic fallback keyword overlap match on "${bestCandidate.product_name}"`,
-      };
-      console.log(`[Deterministic Fallback Matched Keyword] (${reason}) -> Matched keyword overlap for "${bestCandidate.product_name}" (${bestCandidate.order_id}) with 85% confidence`);
-      return res;
-    }
-
-    const res = {
-      matched_order_hint: null,
-      confidence_signal: 0,
-      reasoning: "Deterministic fallback found no matching product keywords in customer reply",
-    };
-    console.log(`[Deterministic Fallback No Match] (${reason}) -> No keyword match for reply "${customerMessage}"`);
-    return res;
   }
 
   try {
     const model = getModel();
     if (!model) {
-      return runFallback("Gemini API key not configured or empty");
+      return makeFallback("Gemini API key not configured");
     }
 
-    const prompt = `You are an evidence interpretation engine. A customer was asked to clarify which order their payment belongs to.
-Pending candidate orders: ${JSON.stringify(candidates)}.
-Customer reply message: "${customerMessage}".
+    const prompt = `You are an AI Finance Controller for an Indian e-commerce store.
+An incoming payment arrived via ${input.payment.payment_method || "card/bank transfer"} without an order reference:
+Payment: Amount ${amountFormatted}, received at ${new Date(input.payment.received_at).toLocaleTimeString("en-IN")}.
 
-Analyze the customer reply (note: reply might be in English, Hindi, or Hinglish like "haan blue kurta wala", "red one pls", "nahi yoga mat ke liye", etc.).
-Determine which candidate order (by order_id) the customer intended, or null if ambiguous/unrelated.
-Assign a confidence signal from 0.0 to 1.0 (typically 0.8 to 0.95 for unambiguous clear mentions, 0.5-0.7 for partial mentions, 0.0 for unrelated).
+Pending Candidate Orders with this exact amount:
+${JSON.stringify(input.candidates, null, 2)}
+
+Recently resolved payments in the past hour:
+${JSON.stringify(input.recentResolvedPayments || [], null, 2)}
+
+Task:
+Generate one concise, professional framing question for the merchant inside their dashboard to help them distinguish between these candidates with a single tap.
+If recent payment history shows a similar payment resolved to one of these customers in the last few minutes, explicitly surface that pattern (e.g., "A similar payment just resolved to [Customer] minutes ago — could this be a repeat order?").
 
 Respond ONLY with valid JSON matching this schema:
 {
-  "matched_order_hint": "order_id" or null,
-  "confidence_signal": 0.85,
-  "reasoning": "brief explanation"
+  "distinguishing_question": "One clear sentence under 35 words asking the merchant which order should be confirmed",
+  "recent_pattern_insight": "A brief sentence pointing out recent matching payments, or null if no relevant pattern exists",
+  "distinguishing_factors": ["Point 1 about timing or customer", "Point 2 about product"]
 }`;
 
-    const result = await model.generateContent(prompt);
-    const raw = result.response.text();
-    const parsed = extractJson(raw);
-    const validated = InterpretationSchema.parse(parsed);
-
-    console.log(
-      `[Gemini Call SUCCESS] Interpreted reply "${customerMessage}" -> hint: ${
-        validated.matched_order_hint ?? "none"
-      } (${Math.round(validated.confidence_signal * 100)}%). ${validated.reasoning}`
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini API call timed out after 5s")), 5000)
     );
+    const result: any = await Promise.race([model.generateContent(prompt), timeoutPromise]);
+    const parsed = extractJson(result.response.text());
+    const validated = MerchantFramingSchema.parse(parsed);
+    console.log(`[Gemini Merchant Framing SUCCESS] -> "${validated.distinguishing_question}"`);
     return validated;
   } catch (err: any) {
     const msg = err?.message?.split("\n")[0] || String(err);
-    console.log(`[Gemini Call FAILED: ${msg}] -> Falling back to deterministic keyword matcher.`);
-    return runFallback(`Gemini API notice: ${msg}`);
+    return makeFallback(`Gemini API notice: ${msg}`);
   }
 }
 
@@ -246,7 +150,6 @@ export async function summarizeEvidenceForMerchant(
   try {
     const model = getModel();
     if (!model) {
-      console.log(`[Gemini Summary] (No API key) -> Fallback summary: "${fallback}"`);
       return fallback;
     }
     const prompt = `Summarize this payment resolution in one clear sentence for a merchant dashboard.
@@ -258,14 +161,14 @@ Respond ONLY with valid JSON:
 {
   "summary": "one sentence explanation"
 }`;
-    const result = await model.generateContent(prompt);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini API call timed out after 5s")), 5000)
+    );
+    const result: any = await Promise.race([model.generateContent(prompt), timeoutPromise]);
     const parsed = extractJson(result.response.text());
     const validated = SummarySchema.parse(parsed);
-    console.log(`[Gemini Summary SUCCESS] -> "${validated.summary}"`);
     return validated.summary;
-  } catch (err: any) {
-    const msg = err?.message?.split("\n")[0] || String(err);
-    console.log(`[Gemini Summary FAILED: ${msg}] -> Fallback summary: "${fallback}"`);
+  } catch {
     return fallback;
   }
 }
@@ -284,7 +187,6 @@ export async function explainEvidence(
   try {
     const model = getModel();
     if (!model) {
-      console.log(`[Gemini Explain] (No API key) -> Fallback explanation: "${fallback}"`);
       return { explanation: fallback };
     }
 
@@ -298,14 +200,14 @@ Respond ONLY with valid JSON:
   "explanation": "one sentence explanation"
 }`;
 
-    const result = await model.generateContent(prompt);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini API call timed out after 5s")), 5000)
+    );
+    const result: any = await Promise.race([model.generateContent(prompt), timeoutPromise]);
     const parsed = extractJson(result.response.text());
     const explanation = parsed.explanation ?? fallback;
-    console.log(`[Gemini Explain SUCCESS] -> "${explanation}"`);
     return { explanation };
-  } catch (err: any) {
-    const msg = err?.message?.split("\n")[0] || String(err);
-    console.log(`[Gemini Explain FAILED: ${msg}] -> Fallback explanation: "${fallback}"`);
+  } catch {
     return { explanation: fallback };
   }
 }

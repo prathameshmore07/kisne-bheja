@@ -21,7 +21,7 @@ const PRESETS: PresetScenario[] = [
     subtitle: "Blue Kurta vs Red Kurta",
     tag: "Collision Pool",
     description: "Two pending orders share the exact same ₹499 price.",
-    expectedOutcome: "Tests tie-breaking logic and single-turn customer clarification.",
+    expectedOutcome: "Tests tie-breaking logic and in-dashboard merchant clarification.",
   },
   {
     id: "yoga_unique",
@@ -115,6 +115,17 @@ export default function CreatePaymentLinkModal() {
       });
 
       const data = await res.json();
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to create payment link");
+      }
+
+      if (data.auth_warning) {
+        setError(`Razorpay Authentication Notice: ${data.auth_warning}. Please verify RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env.local with active test keys from Razorpay Dashboard.`);
+        setLoading(false);
+        return;
+      }
+
       const keyId = data?.key_id || "rzp_test_TSp280vD1KUNbi";
 
       if (typeof window !== "undefined" && (window as any).Razorpay) {
@@ -205,7 +216,7 @@ export default function CreatePaymentLinkModal() {
               <div>
                 <h3 className="font-display font-bold text-lg text-ink tracking-tight flex items-center gap-2">
                   <span>Open Razorpay Checkout</span>
-                  <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-green/10 text-green border border-green/20">
                     Test Mode
                   </span>
                 </h3>
@@ -231,7 +242,7 @@ export default function CreatePaymentLinkModal() {
             <div className="p-6">
               <form onSubmit={(e) => handleDirectPay(e)} className="space-y-5">
                 {error && (
-                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-mono flex items-center gap-2.5 animate-fadeIn">
+                  <div className="p-3.5 rounded-xl bg-red/10 border border-red/20 text-red text-xs font-mono flex items-center gap-2.5 animate-fadeIn">
                     <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="10" />
                       <line x1="12" y1="8" x2="12" y2="12" />

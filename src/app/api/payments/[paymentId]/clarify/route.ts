@@ -8,9 +8,7 @@ export async function POST(
 ) {
   try {
     const { paymentId } = await props.params;
-    const body = await req.json().catch(() => ({}));
-    const language = body?.language as "hinglish" | "english" | "hindi" | undefined;
-    const result = await maybeSendClarification(paymentId, { force: true, language });
+    const result = await maybeSendClarification(paymentId, { force: true });
     return apiSuccess(result);
   } catch (error) {
     return handleApiError(error);

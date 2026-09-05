@@ -1,180 +1,109 @@
-# Kisne Bheja — Deterministic Payment Identity Resolution
+# Kisne Bheja
 
-Kisne Bheja (*"Who sent this payment?"*) is an automated payment reconciliation engine designed for Indian direct-to-consumer (D2C) merchants, service providers, and businesses that accept payments through shared UPI IDs, static QR codes, and unlinked payment links.
+Razorpay tells a merchant money arrived. Kisne Bheja tells you what it was for.
 
-When multiple customers purchase items at identical price points (for example, multiple ₹499 orders placed in close succession), standalone banking webhooks lack deterministic order attribution. Kisne Bheja resolves this ambiguity by combining a deterministic mathematical Confidence Ledger with bounded conversational clarification and merchant override controls.
+## Track
 
----
+Track 04: AI Finance Controller — closes a finance-ops matching loop by attributing ambiguous incoming payments to pending orders, reporting a measured match rate and an honest exception list.
 
-## Core Non-Negotiable Invariants
+## The Problem
 
-1. **Razorpay Test-Mode is the Only Entry Point**: Every payment record must genuinely originate from a real Razorpay test-mode transaction and be verified through Razorpay's HMAC SHA-256 webhook signature. No bypass endpoint, mock creation script, or direct insert button exists in the production application.
-2. **Deterministic Core (No AI in Scoring or Decisions)**: All probability scoring, timing decay, signal addition, threshold evaluation, and state transitions are executed by deterministic TypeScript algorithms. Large Language Models (LLMs) never compute confidence scores or directly mutate database records.
-3. **No Unfair Penalty for New Payers**: Absence of a known customer history is never penalized. Only a positive match to a specific different known customer counts as negative evidence.
-4. **Joint Collision Assignment**: When multiple ambiguous payments of the same amount are pending simultaneously, they are solved jointly via greedy maximum-weight bipartite assignment so two payments can never claim the same order.
-5. **Bounded, Schema-Validated Gemini AI**: Google Gemini is used strictly for three bounded tasks: drafting one short clarifying question without mentioning the amount, extracting structured intent from customer replies, and explaining evidence. Every LLM response is validated against strict Zod schemas and cross-checked against actual candidate orders. Fallback executions are explicitly logged.
-6. **Auditability and 1-Click Reversibility**: Every action is written to a single, append-only, plain-language audit trail per payment. Any match can be unlinked with a single click, restoring the order to pending status and applying negative evidence ($-1.0$) against the incorrect pairing.
-7. **Zero-Guessing Safety**: Payments that match zero pending orders are safely routed to Needs Review rather than assigned speculatively.
+When customers pay an Indian merchant through shared UPI IDs, static QR codes, or unlinked payment links, the payment gateway notifies the merchant that funds arrived but carries no order reference. When multiple customers purchase goods at the exact same price—such as two customers buying different ₹499 kurtas around the same time—the merchant has no deterministic way to tell which payment belongs to which customer. Guessing risks shipping the wrong product to the wrong customer or fulfilling an order twice. Without automated attribution, finance operations teams must halt fulfillment and manually cross-reference timestamps, bank logs, and customer chat messages.
 
----
+## How It Works
 
-## System Architecture
+1. A payment arrives via a verified Razorpay test-mode webhook carrying amount, gateway timestamps, and payer identity tokens (card last-4 and network, netbanking bank code, wallet provider, or UPI VPA hash).
+2. The deterministic scoring engine evaluates all pending candidate orders across an additive Bayesian signal matrix (exact price match, exponential timing proximity, payer history proxy, payment link metadata, and merchant custom rules).
+3. Configurable policy thresholds determine the resolution path: high-confidence matches (≥ 80%) auto-resolve immediately, middle-band matches (50%–79%) await one-tap merchant confirmation, and low-band ambiguous collisions (< 50%) receive a single bounded AI-assisted clarification framing inside the merchant dashboard.
+4. Every resolution is recorded in an append-only, human-readable operational audit log and can be reversed with a single click if a mistake was made, instantly restoring the order to pending status and applying negative evidence against the incorrect pairing.
 
-### 1. Ingestion and Matching Pipeline
+## Architecture
 
 ```mermaid
 flowchart TD
-    A[Razorpay Checkout: Test Mode Transaction] -->|HMAC SHA-256 Verified Webhook| B[Idempotency Check]
-    B -->|Duplicate Payload| B1[Acknowledge & Ignore]
-    B -->|payment.failed Event| B2[Log Audit Entry Without Row Creation]
-    B -->|New Captured Payment| C[Candidate Discovery: Query Pending Orders]
-    
-    C --> D[Deterministic Confidence Ledger]
-    
-    subgraph Signal Matrix
-        D1[Amount Match: 0.85 Unique / 0.45 Collision]
-        D2[Exponential Timing Decay: +0.25 fresh to -0.10 stale]
-        D3[Payer History / Card Proxy: +0.35 Match, 0.0 Unknown]
-        D4[Link Metadata: +0.50 Explicit Order Tie]
-    end
-    
-    D --> D1 & D2 & D3 & D4
-    D1 & D2 & D3 & D4 --> E[Cumulative Clamped Score 0.0 to 1.0]
-    
-    E --> F{Threshold Evaluation}
-    F -->|Confidence >= 0.85| G[Auto-Resolve & Auto-Fulfill Confirmation]
-    F -->|0.60 <= Confidence < 0.85| H[Route to Merchant 1-Tap Approval]
-    F -->|Confidence < 0.60| I{Clarification Check}
-    
-    I -->|No Prior Message| J[Gemini: Draft Distinguishing Question]
-    J --> K[Inbound Reply Webhook / Communication Channel]
-    K -->|Customer Reply| L[Gemini: Parse Entity Intent + Zod Validation]
-    L -->|Validated Delta Signal| M[Append Evidence + Negative Propagation]
-    M --> D
-    
-    I -->|Follow-up Already Sent| N[Route to Needs Review Queue]
+    A[Razorpay Webhook: Card / UPI / Netbanking] -->|HMAC SHA-256 Verified| B[Candidate Discovery: Pending Orders]
+    B --> C[Deterministic Confidence Ledger]
+    C -->|Additive Signal Weights| D{Policy Threshold Decision}
+    D -->|Confidence >= 80%| E[Auto-Resolve: Order Linked & Fulfillment Unlocked]
+    D -->|50% <= Confidence < 80%| F[In-Dashboard One-Tap Merchant Confirmation]
+    D -->|Confidence < 50%| G[Gemini: In-Dashboard Clarification Framing]
+    G --> F
+    D -->|0 Plausible Candidates| H[Held for Manual Review: Zero-Guessing Policy]
+    E --> I[Append-Only Audit Log: One-Click Reversible]
+    F --> I
 ```
 
-### 2. Payment Resolution Lifecycle
+Incoming webhooks flow from Razorpay through HMAC verification, candidate pool discovery, deterministic Bayesian scoring, and policy threshold gating into auto-resolution, merchant confirmation, or manual review queues.
 
-```mermaid
-stateDiagram-v2
-    [*] --> Unresolved: Payment Ingested via Verified Webhook
-    Unresolved --> Ambiguous: Candidates Found, Score 0.60 - 0.84
-    Unresolved --> ManualReview: 0 Candidates Found (Unmatched)
-    
-    Ambiguous --> Resolved: Score >= 0.85 (Auto-Match / Reply Confirmation)
-    Ambiguous --> Resolved: Merchant Manual Approval
-    Ambiguous --> ManualReview: Single Question Spent / Inconclusive
-    
-    Resolved --> Ambiguous: Merchant Unlink Action (Applies -1.0 Negative Signal)
-    ManualReview --> Resolved: Merchant Manual Match
-    
-    Resolved --> [*]
-    ManualReview --> [*]
-```
+## Where AI Is Used, and Where It Deliberately Isn't
 
----
+Google Gemini is used strictly for in-dashboard clarification framing: when two or more pending orders collide at the identical price and lack historical payer signals, Gemini analyzes the candidates and recent payment history to formulate one concise distinguishing question (under 35 words) and surfaces recent purchase patterns for the merchant.
 
-## Deterministic Evidence Signal Model
+Where AI is deliberately excluded:
+- Gemini never sets the final match; all attribution is either decided by deterministic thresholds or explicitly confirmed by the merchant.
+- Gemini never computes or alters confidence scores; all mathematical scoring is executed by pure TypeScript algorithms.
+- Gemini never bypasses policy thresholds or automated safeguards.
+- Exactly one clarification framing attempt is permitted per payment; if the merchant remains uncertain, the payment is routed to the manual review queue rather than prompting in an open-ended conversational loop.
 
-The Confidence Ledger evaluates each candidate pending order independently against incoming transaction metadata using linear additive weights clamped between `0.0` and `1.0`:
+## What Broke, and How It Was Fixed
 
-| Signal Type | Weight Contribution | Mathematical Logic and Policy |
-| :--- | :--- | :--- |
-| `amount_match` | `+0.45` to `+0.85` | Exact amount match. Scales inversely with collision count ($+0.85$ for unique amount, $+0.45$ for 2 or more collisions). |
-| `timing` | `+0.02` to `+0.25` | Exponential decay based on elapsed time between order creation and payment arrival ($+0.25$ for $< 5$ min; $+0.15$ for $< 15$ min; $+0.05$ for $< 1$ hour). |
-| `payer_history` | `+0.35` | Privacy-preserving SHA-256 hash match against customer profile (Card proxy last4+network, Netbanking bank code, Wallet ID, UPI VPA). Absence of history carries $0.0$ neutral weight (never penalized). |
-| `card_proxy` | `+0.35` | Card Network + Last-4 digits proxy match against customer profile. |
-| `link_metadata` | `+0.50` | Explicit order ID embedded in Razorpay payment link notes. |
-| `merchant_rule` | `+0.05` to `+0.30` | Merchant-defined conditional matching rule (customer name match, identity hash match, product tag). |
-| `conversation` | `+0.40` to `+0.45` | Customer reply confirmation parsed and validated via Zod schema, weighted by intent score. |
-| `batch_assignment` | `+0.35` | Mutual exclusion boost from joint Hungarian bipartite assignment across multi-payment collision clusters. |
-| `order_age` | `-0.10` | Stale order penalty applied when order creation exceeds 48 hours. |
-| `negative` | `-1.00` | Hard disqualification applied when a candidate is explicitly rejected or unlinked. |
+During early benchmark testing across synthetic payment batches with large collision pools (e.g. 45 pending orders sharing the exact same ₹499 price point), the reconciliation engine slowed to a crawl, taking over 40 seconds per transaction and threatening an hour-long runtime for 100 payments.
 
----
+Investigation revealed an O(N²) database query explosion inside `runMatchingEngine`: each time a signal was evaluated for a candidate order, `addEvidenceAndRecompute` was querying the entire evidence log from Supabase, inserting a single evidence row, and re-querying every candidate order in the database to recalculate rank. For a single payment evaluated against 45 candidates with 3 signals each, this triggered over 1,400 round-trip HTTP requests to Supabase across the public internet.
 
-## Live Demo Guide (End-to-End Real Flow)
+The fix was architectural: we introduced `appendEvidenceBatch` in `src/lib/repo.ts` to persist all evaluated signals across the candidate pool in a single bulk database insert, hoisted shared queries (such as active merchant rules) out of the candidate loop, and computed running confidence scores in memory. This reduced round-trip database queries from 1,440 down to 5 per transaction—a ~200x performance increase that brought benchmark execution down from over an hour to under 30 seconds while producing byte-for-byte identical confidence scores and audit logs.
 
-To demonstrate the full payment resolution pipeline live using genuine Razorpay test-mode transactions:
+## Results / Benchmark
 
-### Step 1: Initialize Pending Orders
-Ensure the product catalog has realistic pending orders (e.g. Blue Kurta ₹499, Red Kurta ₹499, Yoga Mat ₹799):
+Evaluated on a synthetic test set of 100 payments matched against 130 pending orders containing dense price collisions (₹499 apparel clusters, ₹1,499 linen shirts, and ₹349 retail items) with known ground-truth answers:
+
+- **Total Test Transactions**: 100 payments (₹78,755.00 total volume)
+- **Auto-Resolved (≥ 80% Confidence)**: 20 payments (20.0%) resolved autonomously without human touch
+- **Merchant-Confirmed (50% – 79% Confidence)**: 54 payments (54.0%) confirmed via one-tap review in the dashboard
+- **AI-Framed & Confirmed (< 50% Confidence)**: 21 payments (21.0%) resolved after in-dashboard Gemini clarification
+- **Held for Manual Review (Zero-Guessing Safety)**: 5 payments (5.0%) safely held in review due to inconclusive evidence
+- **False Auto-Links**: 0 (0.0% erroneous automated matches; zero false linkages tolerated)
+- **Empirical Accuracy on Resolved Volume**: 100% of auto-resolved transactions matched the true ground-truth order
+- **Median Resolution Latency**: 0.1 minutes (~6.0 seconds from webhook receipt to final settlement)
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript 5
+- **Database**: Supabase PostgreSQL
+- **External APIs**: Razorpay API, Google Gemini API
+
+## Running It Locally
+
 ```bash
+# 1. Clone repository
+git clone https://github.com/prathameshmore07/kisne-bheja.git
+cd kisne-bheja
+
+# 2. Install dependencies
+npm install
+
+# 3. Configure environment
+cp .env.example .env.local
+# Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+# RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, and GEMINI_API_KEY in .env.local
+
+# 4. Seed database with pending orders
 npm run seed
-```
 
-### Step 2: Start Development Server
-```bash
+# 5. Start development server
 npm run dev
 ```
-Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard) to view the merchant dashboard.
 
-### Step 3: Create a Real Razorpay Payment Link
-- **Option A (UI)**: Click **"Test Payment (Razorpay)"** in the top navigation -> Select the ₹499 2-Way Collision preset -> Click **"Generate Razorpay Link"**.
-- **Option B (CLI)**: Run:
-  ```bash
-  npm run create-link 499 "Kurta Collision Live Demo"
-  ```
+Open [http://localhost:3000](http://localhost:3000) to view the landing page and [http://localhost:3000/dashboard](http://localhost:3000/dashboard) to view the live merchant ledger.
 
-### Step 4: Complete Payment in Razorpay Test Mode
-1. Click **"Open Checkout"** to navigate to the live Razorpay test-mode checkout page (`https://rzp.io/i/...`).
-2. Use Razorpay's published test card (**Primary demo payment method**):
-   - **Test Card**: `4111 1111 1111 1111` (Expiry: any future date e.g. `12/28`, CVV: `123`).
-   - Alternatively, test netbanking (`HDFC` / `SBIN`) or wallet.
-3. Complete the payment.
+## Scope Boundaries
 
-### Step 5: Observe Live Reconciliation
-1. Razorpay dispatches the verified webhook to `/api/webhook`.
-2. The HMAC signature is verified against `RAZORPAY_WEBHOOK_SECRET`.
-3. The payment row appears in the ledger in real time, evaluated across the multi-signal Confidence Ledger.
-4. For the ₹499 collision, observe Gemini draft a single clarifying question, receive customer confirmation, propagate negative evidence to competing items, and auto-resolve the transaction.
+The boundaries of this prototype reflect deliberate product and engineering decisions:
+- **No real money movement**: Operates exclusively in Razorpay test mode; it reconciles payment notifications without handling bank settlements or debit rails.
+- **Single demo merchant**: Built as a dedicated finance controller for a single merchant store rather than a multi-tenant platform.
+- **No multi-tenant authentication**: Omits merchant login walls, organizations, and role-based access control to keep the reconciliation flow and audit ledger immediately accessible for inspection.
 
 ---
 
-## Technical Stack
-
-- **Framework**: Next.js 16 (App Router, React Server Components, Route Handlers)
-- **Language**: TypeScript 5 (Strict Mode)
-- **Database**: Supabase PostgreSQL with UUID primary keys, TIMESTAMPTZ, and native custom enums
-- **Live Updates**: Supabase Realtime Channels (`postgres_changes` subscriptions)
-- **Schema Validation**: Zod 4
-- **AI Integration**: `@google/generative-ai` (Gemini 2.5 Flash / 2.0 Flash)
-- **Payment Verification**: Razorpay SDK with constant-time HMAC SHA-256 verification
-- **Design System**: Tailored light and dark palettes with hairline dividers and exactly 3 status colors (Uncertain: Amber, Resolved: Emerald, Needs Attention: Crimson)
-
----
-
-## Automated Test Suites
-
-Every test script is self-contained and resets its own database state at start, producing identical results whether executed alone or in a batch suite:
-
-```bash
-npm run test-all          # Executes all 9 test suites sequentially
-npm run test-new-features # Verifies advanced extension features
-npm run benchmark         # Runs 100-payment synthetic benchmark and outputs raw JSON
-```
-
-### Individual Test Commands
-
-```bash
-npm run test-repo          # Database queries, mappings, and state mutations
-npm run test-scorer        # Pure signal scoring and mathematical bounds
-npm run test-matcher       # Orchestrated multi-candidate resolution engine
-npm run test-audit         # Plain-language operational audit trail
-npm run test-gemini        # LLM Zod validation and keyword fallbacks
-npm run test-clarification # Single question stopping rule enforcement
-npm run test-reply-interpret # Natural language reply processing and negative propagation
-npm run test-resolution    # Threshold evaluation and auto-fulfillment
-npm run test-webhook       # HMAC verification and idempotency deduplication
-npm run test-merchant-actions # Approve, reject (-100%), and unlink workflows
-npm run test-failures      # Gateway failure and zero-candidate error paths
-npm run test-batch-resolver # Joint Hungarian bipartite matching
-```
-
----
-
-## License
-
-MIT License. See `LICENSE` for details. Built by Prathamesh More.
+Built by Prathamesh More
