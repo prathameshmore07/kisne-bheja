@@ -57,14 +57,14 @@ The fix was architectural: we introduced `appendEvidenceBatch` in `src/lib/repo.
 
 Evaluated on a synthetic test set of 100 payments matched against 130 pending orders containing dense price collisions (₹499 apparel clusters, ₹1,499 linen shirts, and ₹349 retail items) with known ground-truth answers:
 
-- **Total Test Transactions**: 100 payments (₹78,755.00 total volume)
-- **Auto-Resolved (≥ 80% Confidence)**: 20 payments (20.0%) resolved autonomously without human touch
-- **Merchant-Confirmed (50% – 79% Confidence)**: 54 payments (54.0%) confirmed via one-tap review in the dashboard
-- **AI-Framed & Confirmed (< 50% Confidence)**: 21 payments (21.0%) resolved after in-dashboard Gemini clarification
-- **Held for Manual Review (Zero-Guessing Safety)**: 5 payments (5.0%) safely held in review due to inconclusive evidence
+- **Total Test Transactions**: 100 payments (₹75,603.00 total volume)
+- **Auto-Resolved (≥ 80% Confidence)**: 41 payments (41.0%) resolved autonomously without human touch
+- **Merchant-Confirmed (50% – 79% Confidence)**: 45 payments (45.0%) confirmed via one-tap review in the dashboard
+- **AI-Framed & Confirmed (< 50% Confidence)**: 11 payments (11.0%) resolved after in-dashboard Gemini clarification
+- **Held for Manual Review (Zero-Guessing Safety)**: 3 payments (3.0%) safely held in review due to inconclusive evidence
 - **False Auto-Links**: 0 (0.0% erroneous automated matches; zero false linkages tolerated)
 - **Empirical Accuracy on Resolved Volume**: 100% of auto-resolved transactions matched the true ground-truth order
-- **Median Resolution Latency**: 0.1 minutes (~6.0 seconds from webhook receipt to final settlement)
+- **Median Resolution Latency**: 0.08 minutes (~4.8 seconds from webhook receipt to final settlement)
 
 ## Tech Stack
 

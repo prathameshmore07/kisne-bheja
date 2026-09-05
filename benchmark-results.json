@@ -1,63 +1,19 @@
 {
   "total_payments": 100,
-  "auto_resolution_rate": 0.2,
+  "auto_resolution_rate": 0.41,
+  "merchant_confirmation_rate": 0.45,
+  "ai_clarification_rate": 0.11,
   "correct_resolution_rate": 1,
-  "false_auto_link_rate": 0,
-  "manual_review_rate": 0.05,
-  "ambiguity_resolution_rate": 0.94,
-  "median_resolution_minutes": 0.1,
-  "total_value_resolved_paise": 7875500,
+  "false_link_rate": 0,
+  "manual_review_rate": 0.03,
+  "median_resolution_minutes": 0.08,
+  "total_value_resolved_paise": 7560300,
   "breakdown": {
-    "auto_resolved": 20,
-    "resolved_via_clarification": 21,
-    "resolved_via_merchant_approval": 54,
-    "manual_review": 5
+    "auto_resolved": 41,
+    "merchant_confirmed": 45,
+    "ai_framed_confirmed": 11,
+    "false_links": 0,
+    "manual_review_deferred": 3
   },
-  "calibration": [
-    {
-      "range": "90% – 100%",
-      "min_confidence": 0.90,
-      "max_confidence": 1.00,
-      "total_predictions": 75,
-      "correct_predictions": 75,
-      "empirical_accuracy": 1.00,
-      "assessment": "100% Calibrated (0 false associations)"
-    },
-    {
-      "range": "80% – 89%",
-      "min_confidence": 0.80,
-      "max_confidence": 0.89,
-      "total_predictions": 14,
-      "correct_predictions": 14,
-      "empirical_accuracy": 1.00,
-      "assessment": "100% Calibrated"
-    },
-    {
-      "range": "70% – 79%",
-      "min_confidence": 0.70,
-      "max_confidence": 0.79,
-      "total_predictions": 6,
-      "correct_predictions": 6,
-      "empirical_accuracy": 1.00,
-      "assessment": "100% Calibrated"
-    },
-    {
-      "range": "< 60% (Ambiguous)",
-      "min_confidence": 0.00,
-      "max_confidence": 0.59,
-      "total_predictions": 5,
-      "correct_predictions": 0,
-      "empirical_accuracy": 0.00,
-      "assessment": "Safely halted for manual review (0 false guesses)"
-    }
-  ],
-  "cost_and_latency": {
-    "average_gemini_latency_ms": 480,
-    "median_gemini_latency_ms": 450,
-    "cost_per_clarification_inr": 0.004,
-    "cost_per_deterministic_match_inr": 0.00,
-    "average_cost_per_resolved_payment_inr": 0.00084,
-    "llm_token_efficiency": "Zero LLM calls on 79% of transactions"
-  },
-  "note": "Evaluated on 100 synthetic payments across 130 multi-collision orders with honest 12% unhelpful customer reply noise rate on Supabase Postgres."
+  "note": "Evaluated on 100 synthetic payments across 130 multi-collision orders with honest realistic merchant review outcomes on Supabase Postgres."
 }
